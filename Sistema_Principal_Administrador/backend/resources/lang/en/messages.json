@@ -1,0 +1,23 @@
+{
+  "auth": {
+    "login_success": "Login successful",
+    "login_invalid": "Invalid credentials",
+    "token_required": "Authentication token not provided",
+    "token_invalid": "Invalid or expired token"
+  },
+  "pedidos": {
+    "created": "Order created successfully",
+    "updated": "Order status updated successfully",
+    "not_found": "Order not found"
+  },
+  "productos": {
+    "created": "Product created successfully",
+    "updated": "Product updated successfully",
+    "deleted": "Product deactivated successfully"
+  },
+  "errors": {
+    "server_error": "Internal server error",
+    "not_found": "Not found",
+    "unauthorized": "Unauthorized"
+  }
+}

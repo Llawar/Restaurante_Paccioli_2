@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Animación de pulso para pedidos listos */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.6); }
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* Animación de parpadeo dorado para bordes */
+@keyframes border-pulse-gold {
+  0%, 100% { 
+    border-color: rgba(251, 191, 36, 0.3);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.2), inset 0 0 10px rgba(251, 191, 36, 0.1);
+  }
+  50% { 
+    border-color: rgba(251, 191, 36, 1);
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.8), inset 0 0 20px rgba(251, 191, 36, 0.3);
+  }
+}
+
+.animate-border-pulse {
+  animation: border-pulse-gold 1.5s ease-in-out infinite;
+}
+
+/* Scrollbar oculto pero funcional */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Efecto de brillo dorado */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-gold {
+  border-color: #fbbf24;
+}
+
+.bg-navy {
+  background-color: #0f172a;
+}
+
+.bg-navy-light {
+  background-color: #1e293b;
+}

@@ -1,0 +1,23 @@
+{
+  "auth": {
+    "login_success": "Inicio de sesión exitoso",
+    "login_invalid": "Credenciales inválidas",
+    "token_required": "Token de autenticación no proporcionado",
+    "token_invalid": "Token inválido o expirado"
+  },
+  "pedidos": {
+    "created": "Pedido creado exitosamente",
+    "updated": "Estado del pedido actualizado exitosamente",
+    "not_found": "Pedido no encontrado"
+  },
+  "productos": {
+    "created": "Producto creado exitosamente",
+    "updated": "Producto actualizado exitosamente",
+    "deleted": "Producto desactivado correctamente"
+  },
+  "errors": {
+    "server_error": "Error interno del servidor",
+    "not_found": "No encontrado",
+    "unauthorized": "No autorizado"
+  }
+}
