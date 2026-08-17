@@ -8,6 +8,9 @@ import {
   Truck, 
   Users, 
   FileText,
+  Tag,
+  ChefHat,
+  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -25,10 +28,18 @@ const navItems = [
   { path: '/reportes', label: 'Reportes', icon: FileText },
 ];
 
+const configItems = [
+  { path: '/categorias', label: 'Categorías', icon: Tag },
+  { path: '/puestos', label: 'Puestos de Cocina', icon: ChefHat },
+];
+
 function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const storedUser = localStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  const isAdmin = user?.rol === 'admin';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -103,6 +114,40 @@ function Sidebar() {
                 </NavLink>
               </li>
             ))}
+
+            {isAdmin && (
+              <>
+                <li className="pt-4 pb-1">
+                  {!collapsed && (
+                    <div className="flex items-center gap-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <Settings size={13} />
+                      Configuración
+                    </div>
+                  )}
+                  {collapsed && <div className="border-t border-sidebar-light mx-3 my-3" />}
+                </li>
+                {configItems.map((item) => (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
+                          isActive
+                            ? 'bg-primary text-white'
+                            : 'text-gray-300 hover:bg-sidebar-light hover:text-white'
+                        }`
+                      }
+                    >
+                      <item.icon size={20} className="flex-shrink-0" />
+                      {!collapsed && (
+                        <span className="font-medium whitespace-nowrap">{item.label}</span>
+                      )}
+                    </NavLink>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </nav>
 

@@ -14,7 +14,7 @@ export const pedidosApi = {
   update: (id, data) => api.put(`/pedidos/${id}`, data),
   
   // Actualizar estado del pedido
-  updateEstado: (id, estado) => api.patch(`/pedidos/${id}/estado`, { estado }),
+  updateEstado: (id, estado) => api.put(`/pedidos/${id}/estado`, { estado }),
   
   // Obtener pedidos por estado
   getByEstado: (estado) => api.get(`/pedidos/estado/${estado}`),

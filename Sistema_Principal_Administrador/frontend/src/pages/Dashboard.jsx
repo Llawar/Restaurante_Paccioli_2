@@ -17,6 +17,7 @@ import Table from '../components/ui/Table';
 import { pedidosApi } from '../services/pedidos.service';
 import { inventarioApi } from '../services/inventario.service';
 import { productosApi } from '../services/productos.service';
+import socket from '../services/socket';
 
 function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,27 @@ function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    socket.on('pedidos:changed', () => {
+      console.log('Pedidos actualizados, recargando dashboard...');
+      fetchDashboardData();
+    });
+
+    socket.on('inventario:changed', () => {
+      console.log('Inventario actualizado, recargando dashboard...');
+      fetchDashboardData();
+    });
+
+    socket.on('products:changed', () => {
+      console.log('Productos actualizados, recargando dashboard...');
+      fetchDashboardData();
+    });
+
+    return () => {
+      socket.off('pedidos:changed');
+      socket.off('inventario:changed');
+      socket.off('products:changed');
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -197,7 +219,7 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           title="Ventas del día"
-          value={`$${stats.ventasDia.toFixed(2)}`}
+          value={`Bs ${stats.ventasDia.toFixed(2)}`}
           icon={DollarSign}
           trend="up"
           trendValue="+12% vs ayer"
@@ -294,7 +316,7 @@ function Dashboard() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.id}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{order.client}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{order.type}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">${order.total.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">Bs {order.total.toFixed(2)}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(order.status)}`}>
                       {getStatusIcon(order.status)}

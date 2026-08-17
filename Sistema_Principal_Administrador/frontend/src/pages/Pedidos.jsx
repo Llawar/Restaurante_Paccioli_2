@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 import { 
   Search, 
   ChevronLeft,
@@ -12,9 +11,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { pedidosApi } from '../services/pedidos.service';
-
-// Conexión WebSocket
-const socket = io('http://localhost:3006');
+import socket from '../services/socket';
 
 // Componente MiniKpiCard (minimalista)
 function MiniKpiCard({ number, label, dotColor }) {
@@ -138,11 +135,17 @@ function Pedidos() {
       console.log('Nuevo pedido desde cocina, recargando...');
       fetchOrders(false);
     });
+
+    socket.on('pedidos:changed', () => {
+      console.log('Pedido actualizado, recargando...');
+      fetchOrders(false);
+    });
     
     return () => {
       clearInterval(interval);
       socket.off('kitchen:order_updated');
       socket.off('kitchen:new_order');
+      socket.off('pedidos:changed');
     };
   }, []);
 
@@ -190,6 +193,14 @@ function Pedidos() {
     }
   };
 
+  // Filtrar pedidos
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.client.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'todos' || order.status === activeTab;
+    return matchesSearch && matchesTab;
+  });
+
   // Paginación
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -221,14 +232,6 @@ function Pedidos() {
     { id: 'listo', label: 'Listo', count: kpis.listo },
     { id: 'entregado', label: 'Entregado', count: kpis.entregado }
   ];
-
-  // Filtrar pedidos
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'todos' || order.status === activeTab;
-    return matchesSearch && matchesTab;
-  });
 
   const getInitials = (name) => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
@@ -358,7 +361,7 @@ function Pedidos() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{order.items}</td>
                   <td className="px-6 py-4">
-                    <span className="font-bold text-gray-900">${order.total.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900">Bs {order.total.toFixed(2)}</span>
                   </td>
                   <td className="px-6 py-4">
                     <OrderStatusBadge status={order.status} />

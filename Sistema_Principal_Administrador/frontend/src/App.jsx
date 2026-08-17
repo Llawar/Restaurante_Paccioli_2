@@ -8,6 +8,8 @@ import Usuarios from './pages/Usuarios'
 import Pedidos from './pages/Pedidos'
 import Delivery from './pages/Delivery'
 import Reportes from './pages/Reportes'
+import Categorias from './pages/Categorias'
+import Puestos from './pages/Puestos'
 
 function AppRoutes() {
   const location = useLocation();
@@ -24,6 +26,8 @@ function AppRoutes() {
         <Route path="pedidos" element={<Pedidos key={location.key} />} />
         <Route path="delivery" element={<Delivery key={location.key} />} />
         <Route path="reportes" element={<Reportes key={location.key} />} />
+        <Route path="categorias" element={<Categorias key={location.key} />} />
+        <Route path="puestos" element={<Puestos key={location.key} />} />
       </Route>
     </Routes>
   );

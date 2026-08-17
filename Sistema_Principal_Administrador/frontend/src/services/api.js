@@ -4,9 +4,7 @@ const API_URL = 'http://localhost:3006/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: {},
 });
 
 // Interceptor para agregar token JWT

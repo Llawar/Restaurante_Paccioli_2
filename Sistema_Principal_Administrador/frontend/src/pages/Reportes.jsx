@@ -270,7 +270,7 @@ function Reportes() {
         <KpiReportCard 
           icon={DollarSign}
           title="Ingresos Totales"
-          value={`$${stats.totalRevenue.toLocaleString()}`}
+          value={`Bs ${stats.totalRevenue.toLocaleString()}`}
           subtitle="Últimos 7 meses"
           color="orange"
         />
@@ -284,7 +284,7 @@ function Reportes() {
         <KpiReportCard 
           icon={TrendingUp}
           title="Ticket Promedio"
-          value={`$${stats.avgTicket.toFixed(2)}`}
+          value={`Bs ${stats.avgTicket.toFixed(2)}`}
           subtitle="Por pedido"
           color="green"
         />
@@ -318,7 +318,7 @@ function Reportes() {
               <YAxis 
                 tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={{ stroke: '#e5e7eb' }}
-                tickFormatter={(value) => `$${value / 1000}k`}
+                tickFormatter={(value) => `Bs ${value / 1000}k`}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -327,7 +327,7 @@ function Reportes() {
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                 }}
-                formatter={(value) => [`$${value.toLocaleString()}`, 'Ingresos']}
+                formatter={(value) => [`Bs ${value.toLocaleString()}`, 'Ingresos']}
               />
               <Area 
                 type="monotone" 
@@ -475,8 +475,8 @@ function Reportes() {
                 <tr key={index} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.period}</td>
                   <td className="px-6 py-4 text-sm text-gray-600 text-center">{row.orders}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">${row.revenue.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">${row.daily.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">Bs {row.revenue.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">Bs {row.daily.toLocaleString()}</td>
                   <td className="px-6 py-4">
                     <TrendBadge value={row.change} />
                   </td>
@@ -487,8 +487,8 @@ function Reportes() {
               <tr>
                 <td className="px-6 py-4 text-sm font-bold text-gray-900">Total</td>
                 <td className="px-6 py-4 text-sm font-bold text-gray-900 text-center">{totalOrders}</td>
-                <td className="px-6 py-4 text-lg font-bold text-primary">${totalRevenue.toLocaleString()}</td>
-                <td className="px-6 py-4 text-sm font-bold text-gray-900">${Math.round(totalRevenue / 210).toLocaleString()}</td>
+                <td className="px-6 py-4 text-lg font-bold text-primary">Bs {totalRevenue.toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm font-bold text-gray-900">Bs {Math.round(totalRevenue / 210).toLocaleString()}</td>
                 <td className="px-6 py-4">
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                     <ArrowUp size={12} />

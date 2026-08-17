@@ -13,6 +13,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { inventarioApi } from '../services/inventario.service';
+import socket from '../services/socket';
 
 function Inventario() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,6 +34,15 @@ function Inventario() {
 
   useEffect(() => {
     fetchInventory();
+
+    socket.on('inventario:changed', () => {
+      console.log('Inventario actualizado, recargando...');
+      fetchInventory();
+    });
+
+    return () => {
+      socket.off('inventario:changed');
+    };
   }, []);
 
   const fetchInventory = async () => {

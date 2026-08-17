@@ -4,14 +4,15 @@ export const inventarioApi = {
   // Obtener todo el inventario
   getAll: () => api.get('/inventario'),
   
-  // Obtener item por ID
-  getById: (id) => api.get(`/inventario/${id}`),
+  // Obtener item por producto
+  getById: (id) => api.get(`/inventario/producto/${id}`),
   
-  // Actualizar stock
-  updateStock: (id, cantidad) => api.patch(`/inventario/${id}/stock`, { cantidad }),
+  // Actualizar stock (entrada/salida/ajuste)
+  updateStock: (id, cantidad, tipo_movimiento = 'entrada', observaciones) => 
+    api.put(`/inventario/producto/${id}/stock`, { cantidad, tipo_movimiento, observaciones }),
   
   // Obtener movimientos de inventario
-  getMovimientos: (id) => api.get(`/inventario/${id}/movimientos`),
+  getMovimientos: (id) => api.get(`/inventario/producto/${id}/movimientos`),
   
   // Obtener alertas de stock bajo
   getAlertas: () => api.get('/inventario/alertas'),
@@ -20,7 +21,7 @@ export const inventarioApi = {
   create: (data) => api.post('/inventario', data),
   
   // Actualizar insumo
-  update: (id, data) => api.put(`/inventario/${id}`, data)
+  update: (id, data) => api.put(`/inventario/producto/${id}`, data)
 };
 
 export default inventarioApi;

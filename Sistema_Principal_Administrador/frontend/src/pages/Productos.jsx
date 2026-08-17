@@ -14,6 +14,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { productosApi } from '../services/productos.service';
+import { categoriasApi } from '../services/categorias.service';
+import socket from '../services/socket';
 
 function Productos() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,6 +25,7 @@ function Productos() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(['Todas']);
+  const [categoriaOptions, setCategoriaOptions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,25 +40,50 @@ function Productos() {
     nombre: '',
     descripcion: '',
     precio: '',
-    categoria_id: '1'
+    categoria_id: ''
   });
   const [editFormData, setEditFormData] = useState({
     nombre: '',
     descripcion: '',
     precio: '',
-    categoria_id: '1',
+    categoria_id: '',
     imagen: '',
     activo: true
   });
 
   useEffect(() => {
     fetchProducts();
+    fetchCategorias();
+
+    socket.on('products:changed', () => {
+      console.log('Productos actualizados desde el servidor, recargando...');
+      fetchProducts();
+    });
+    socket.on('categories:changed', () => {
+      fetchCategorias();
+      fetchProducts();
+    });
+
+    return () => {
+      socket.off('products:changed');
+      socket.off('categories:changed');
+    };
   }, []);
+
+  const fetchCategorias = async () => {
+    try {
+      const response = await categoriasApi.getAll();
+      const data = response.data?.data || [];
+      setCategoriaOptions(data);
+    } catch (error) {
+      console.error('Error cargando categorías:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productosApi.getAll();
+      const response = await productosApi.getAllAdmin();
       const productosData = response.data?.data || [];
       
       // Transformar datos de la API al formato del componente
@@ -65,7 +93,7 @@ function Productos() {
         description: p.descripcion,
         category: p.categoria_nombre || p.categoria || 'Sin categoría',
         price: parseFloat(p.precio) || 0,
-        sold: p.vendidos || Math.floor(Math.random() * 100), // Temporal hasta tener ventas reales
+        sold: p.vendidos || 0,
         status: p.activo ? 'activo' : 'inactivo',
         image: p.imagen && p.imagen.startsWith('/uploads/') 
           ? `http://localhost:3006${p.imagen}` 
@@ -142,25 +170,27 @@ function Productos() {
         nombre: '',
         descripcion: '',
         precio: '',
-        categoria_id: '1'
+        categoria_id: ''
       });
       clearImage();
       await fetchProducts();
     } catch (error) {
       console.error('Error creando producto:', error);
-      alert('Error al crear el producto: ' + (error.response?.data?.message || error.message));
+      const serverMessage = error.response?.data?.message;
+      alert(serverMessage || 'Error al crear el producto: ' + (error.message || 'Error desconocido'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const openEditModal = (product) => {
+    const categoria = categoriaOptions.find(c => c.nombre === product.category);
     setEditingProduct(product);
     setEditFormData({
       nombre: product.name || '',
       descripcion: product.description || '',
       precio: product.price || '',
-      categoria_id: categories.findIndex(c => c === product.category) + 1 || '1',
+      categoria_id: categoria ? String(categoria.id) : '',
       imagen: product.image || '',
       activo: product.status === 'activo'
     });
@@ -191,7 +221,8 @@ function Productos() {
       await fetchProducts();
     } catch (error) {
       console.error('Error actualizando producto:', error);
-      alert('Error al actualizar el producto: ' + (error.response?.data?.message || error.message));
+      const serverMessage = error.response?.data?.message;
+      alert(serverMessage || 'Error al actualizar el producto: ' + (error.message || 'Error desconocido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -240,17 +271,17 @@ function Productos() {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file) {
       validateAndSetImage(file);
-    } else {
-      alert('Por favor, selecciona un archivo de imagen válido (JPEG, PNG, WEBP, GIF)');
     }
   };
 
   const validateAndSetImage = (file) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('Formato no soportado. Usa: JPEG, JPG, PNG, WEBP o GIF');
+    const allowedExtensions = /\.(jpe?g|png|webp|gif)$/i;
+    const validType = allowedTypes.includes(file.type) || file.type === '';
+    if (!validType || !allowedExtensions.test(file.name)) {
+      alert('Imagen no admitida. Formatos permitidos: JPEG, JPG, PNG, WEBP o GIF');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -417,7 +448,7 @@ function Productos() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-semibold text-gray-900">${product.price.toFixed(2)}</span>
+                    <span className="font-semibold text-gray-900">Bs {product.price.toFixed(2)}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -549,12 +580,12 @@ function Productos() {
                     value={formData.categoria_id}
                     onChange={(e) => setFormData({...formData, categoria_id: e.target.value})}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-white"
+                    required
                   >
-                    <option value="1">Entradas</option>
-                    <option value="2">Platos Principales</option>
-                    <option value="3">Bebidas</option>
-                    <option value="4">Postres</option>
-                    <option value="5">Bebidas Alcohólicas</option>
+                    <option value="" disabled>Seleccionar categoría...</option>
+                    {categoriaOptions.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -640,12 +671,12 @@ function Productos() {
                     value={editFormData.categoria_id}
                     onChange={(e) => setEditFormData({...editFormData, categoria_id: e.target.value})}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-white"
+                    required
                   >
-                    <option value="1">Entradas</option>
-                    <option value="2">Platos Principales</option>
-                    <option value="3">Bebidas</option>
-                    <option value="4">Postres</option>
-                    <option value="5">Bebidas Alcohólicas</option>
+                    <option value="" disabled>Seleccionar categoría...</option>
+                    {categoriaOptions.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                    ))}
                   </select>
                 </div>
               </div>

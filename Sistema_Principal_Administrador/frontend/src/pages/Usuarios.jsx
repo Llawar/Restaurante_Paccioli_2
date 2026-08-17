@@ -15,6 +15,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { usuariosApi } from '../services/usuarios.service';
+import api from '../services/api';
+import socket from '../services/socket';
 
 // Componente KpiCard
 function KpiCard({ icon: Icon, color, number, title }) {
@@ -49,6 +51,11 @@ function StatusBadge({ text, variant }) {
       bg: 'bg-blue-100',
       text: 'text-blue-700',
       dot: 'bg-blue-500'
+    },
+    cocinero: {
+      bg: 'bg-purple-100',
+      text: 'text-purple-700',
+      dot: 'bg-purple-500'
     },
     activo: {
       bg: 'bg-green-100',
@@ -96,10 +103,33 @@ function Usuarios() {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [puestos, setPuestos] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState({ nombre: '', usuario: '', email: '', password: '', rol: 'empleado', puesto_cocina_id: '', activo: 1 });
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     fetchUsers();
+    fetchPuestos();
+
+    socket.on('usuarios:changed', () => {
+      console.log('Usuarios actualizados, recargando...');
+      fetchUsers();
+    });
+
+    return () => {
+      socket.off('usuarios:changed');
+    };
   }, []);
+
+  const fetchPuestos = async () => {
+    try {
+      const r = await api.get('/cocina/puestos');
+      if (r.data?.success) setPuestos(r.data.data);
+    } catch (error) {
+      console.error('Error cargando puestos:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -112,7 +142,9 @@ function Usuarios() {
         id: u.id,
         name: `${u.nombre} ${u.apellido}`,
         email: u.email,
-        role: u.rol === 'admin' ? 'admin' : 'empleado',
+        role: u.rol,
+        puesto: u.puesto_nombre,
+        puestoId: u.puesto_cocina_id,
         status: u.activo ? 'activo' : 'inactivo',
         joined: u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '2024-01-01',
         lastAccess: u.last_login ? new Date(u.last_login).toLocaleString('es-ES') : 'Nunca'
@@ -146,6 +178,34 @@ function Usuarios() {
     }
   };
 
+  const handleCreateUser = async () => {
+    setSaveError('');
+    if (!form.nombre || !form.usuario || !form.password) {
+      setSaveError('Nombre, usuario y contraseña son requeridos.');
+      return;
+    }
+    if (form.rol === 'cocinero' && !form.puesto_cocina_id) {
+      setSaveError('El cocinero debe tener un puesto de cocina asignado.');
+      return;
+    }
+    try {
+      await usuariosApi.create({
+        nombre: form.nombre,
+        usuario: form.usuario,
+        email: form.email || null,
+        password: form.password,
+        rol: form.rol,
+        activo: form.activo,
+        puesto_cocina_id: form.rol === 'cocinero' ? Number(form.puesto_cocina_id) : null
+      });
+      setModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error creando usuario:', error);
+      setSaveError(error.response?.data?.message || 'Error al crear el usuario.');
+    }
+  };
+
   // Fecha actual
   const today = new Date().toLocaleDateString('es-ES', {
     day: 'numeric',
@@ -156,6 +216,7 @@ function Usuarios() {
   // Cálculos para KPIs
   const totalUsers = users.length;
   const adminCount = users.filter(u => u.role === 'admin').length;
+  const cocineroCount = users.filter(u => u.role === 'cocinero').length;
   const activeCount = users.filter(u => u.status === 'activo').length;
 
   // Filtrar usuarios
@@ -221,11 +282,11 @@ function Usuarios() {
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <p className="text-sm text-gray-500">
-          {filteredUsers.length} usuarios
+          {filteredUsers.length} usuarios · <span className="text-purple-600">{cocineroCount} cocineros</span>
         </p>
         <button 
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-xl shadow-lg shadow-primary/30 transition-all"
-          onClick={() => console.log('Nuevo usuario')}
+          onClick={() => { setForm({ nombre: '', usuario: '', email: '', password: '', rol: 'empleado', puesto_cocina_id: '', activo: 1 }); setSaveError(''); setModalOpen(true); }}
         >
           <Plus size={18} />
           Nuevo Usuario
@@ -249,15 +310,26 @@ function Usuarios() {
           
           {/* Filter Dropdowns */}
           <div className="flex gap-3">
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-primary hover:text-primary transition-colors bg-white">
-              <Filter size={16} />
-              Todos los roles
-              <ChevronDown size={14} />
-            </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-primary hover:text-primary transition-colors bg-white">
-              Todos los estados
-              <ChevronDown size={14} />
-            </button>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="inline-flex items-center px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-primary focus:border-primary outline-none bg-white cursor-pointer"
+            >
+              <option value="todos">Todos los roles</option>
+              <option value="admin">Administrador</option>
+              <option value="empleado">Empleado</option>
+              <option value="cocinero">Cocinero</option>
+              <option value="delivery">Delivery</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="inline-flex items-center px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-primary focus:border-primary outline-none bg-white cursor-pointer"
+            >
+              <option value="todos">Todos los estados</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
           </div>
         </div>
       </div>
@@ -271,6 +343,7 @@ function Usuarios() {
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuario</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Correo</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Puesto</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ingreso</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Último acceso</th>
@@ -291,9 +364,12 @@ function Usuarios() {
                   <td className="px-6 py-4 text-sm text-gray-500">{user.email}</td>
                   <td className="px-6 py-4">
                     <StatusBadge 
-                      text={user.role === 'admin' ? 'Administrador' : 'Empleado'} 
-                      variant={user.role === 'admin' ? 'admin' : 'empleado'}
+                      text={user.role === 'admin' ? 'Administrador' : user.role === 'cocinero' ? 'Cocinero' : user.role === 'delivery' ? 'Delivery' : 'Empleado'} 
+                      variant={user.role === 'admin' ? 'admin' : user.role === 'cocinero' ? 'cocinero' : user.role === 'delivery' ? 'empleado' : 'empleado'}
                     />
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {user.puesto || <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge 
@@ -356,6 +432,121 @@ function Usuarios() {
           </div>
         </div>
       </div>
+
+      {/* Modal crear usuario */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Nuevo Usuario</h2>
+              <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+
+            {saveError && (
+              <div className="mb-4 bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg">{saveError}</div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                <input
+                  type="text"
+                  value={form.nombre}
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                <input
+                  type="text"
+                  value={form.usuario}
+                  onChange={(e) => setForm({ ...form, usuario: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Correo</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                  <select
+                    value={form.rol}
+                    onChange={(e) => setForm({ ...form, rol: e.target.value, puesto_cocina_id: '' })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  >
+                    <option value="empleado">Empleado</option>
+                    <option value="cocinero">Cocinero</option>
+                    <option value="delivery">Delivery</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <select
+                    value={form.activo}
+                    onChange={(e) => setForm({ ...form, activo: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  >
+                    <option value={1}>Activo</option>
+                    <option value={0}>Inactivo</option>
+                  </select>
+                </div>
+              </div>
+              {form.rol === 'cocinero' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Puesto de cocina fijo</label>
+                  <select
+                    value={form.puesto_cocina_id}
+                    onChange={(e) => setForm({ ...form, puesto_cocina_id: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  >
+                    <option value="">Seleccionar puesto...</option>
+                    {puestos.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                  {!form.puesto_cocina_id && (
+                    <p className="text-xs text-amber-600 mt-1">Requiere un puesto: el cocinero verá solo ese puesto en su app.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="flex-1 px-4 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium shadow-lg shadow-primary/30 transition-all"
+              >
+                Crear Usuario
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

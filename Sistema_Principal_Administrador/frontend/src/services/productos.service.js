@@ -4,6 +4,9 @@ export const productosApi = {
   // Obtener todos los productos
   getAll: () => api.get('/productos'),
   
+  // Obtener todos los productos incluyendo inactivos (panel admin)
+  getAllAdmin: () => api.get('/productos/admin'),
+  
   // Obtener un producto por ID
   getById: (id) => api.get(`/productos/${id}`),
   
@@ -13,12 +16,9 @@ export const productosApi = {
   // Crear nuevo producto con imagen
   create: (data) => {
     // Si data es FormData, enviar como multipart/form-data
+    // Content-Type undefined para que axios/navegador agreguen el boundary
     if (data instanceof FormData) {
-      return api.post('/productos', data, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      return api.post('/productos', data, { headers: { 'Content-Type': undefined } });
     }
     return api.post('/productos', data);
   },
@@ -26,12 +26,9 @@ export const productosApi = {
   // Actualizar producto con imagen
   update: (id, data) => {
     // Si data es FormData, enviar como multipart/form-data
+    // Content-Type undefined para que axios/navegador agreguen el boundary
     if (data instanceof FormData) {
-      return api.put(`/productos/${id}`, data, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      return api.put(`/productos/${id}`, data, { headers: { 'Content-Type': undefined } });
     }
     return api.put(`/productos/${id}`, data);
   },

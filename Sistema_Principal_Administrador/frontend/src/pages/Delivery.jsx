@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { deliveryApi } from '../services/delivery.service';
 import { pedidosApi } from '../services/pedidos.service';
+import socket from '../services/socket';
 
 // Componente DeliveryCard
 function DeliveryCard({ order, onStatusChange }) {
@@ -152,7 +153,7 @@ function DeliveryCard({ order, onStatusChange }) {
         <div className="flex items-center justify-between gap-3">
           {/* Price */}
           <div className="text-xl font-bold text-primary">
-            ${order.price.toFixed(2)}
+            Bs {order.price.toFixed(2)}
           </div>
 
           {/* Buttons */}
@@ -195,6 +196,15 @@ function Delivery() {
 
   useEffect(() => {
     fetchDeliveryOrders();
+
+    socket.on('delivery:changed', () => {
+      console.log('Delivery actualizado, recargando...');
+      fetchDeliveryOrders();
+    });
+
+    return () => {
+      socket.off('delivery:changed');
+    };
   }, []);
 
   const fetchDeliveryOrders = async () => {
