@@ -22,9 +22,23 @@ import { apiService, ApiProduct } from './api';
 
 // Conexión WebSocket al backend
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
-const socket = io(API_URL, {
-  transports: ['websocket', 'polling']
+const socket = io(API_URL.replace('/api', ''), {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 10000
 });
+
+// Placeholder local para productos sin imagen (no depende de servicios externos)
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400"><rect width="500" height="400" fill="#f3e9dc"/><text x="250" y="195" font-family="Arial, sans-serif" font-size="28" fill="#b08968" text-anchor="middle">Sin imagen</text></svg>'
+);
+
+const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  e.currentTarget.src = PLACEHOLDER_IMAGE;
+};
 
 // Mapeo de categorías de API a categorías de la app
 const mapCategory = (catName: string): 'platos' | 'bebidas' | 'postres' => {
@@ -41,7 +55,7 @@ const mapApiProduct = (p: ApiProduct): Product => ({
   description: p.descripcion || '',
   price: parseFloat(p.precio.toString()),
   category: mapCategory(p.categoria_nombre),
-  image: p.imagen ? `${API_URL.replace('/api', '')}${p.imagen}` : 'https://via.placeholder.com/500?text=No+Image',
+  image: p.imagen ? `${API_URL.replace('/api', '')}${p.imagen}` : PLACEHOLDER_IMAGE,
   available: p.disponible === 1
 });
 
@@ -82,17 +96,40 @@ export default function App() {
       }
     };
 
+    const handleProductsChanged = () => {
+      console.log('Productos actualizados desde el servidor, recargando...');
+      loadProducts();
+    };
+
+    const handleSocketConnect = () => {
+      console.log('Socket conectado, sincronizando productos...');
+      setIsOnline(true);
+      loadProducts();
+    };
+
+    const handleSocketDisconnect = () => {
+      console.log('Socket desconectado');
+      setIsOnline(false);
+    };
+
     loadProducts();
     
     // Escuchar eventos WebSocket para actualizaciones en tiempo real
-    socket.on('products:changed', () => {
-      console.log('Productos actualizados desde el servidor, recargando...');
+    socket.on('products:changed', handleProductsChanged);
+    socket.on('connect', handleSocketConnect);
+    socket.on('disconnect', handleSocketDisconnect);
+
+    // Respaldo: refresco periódico silencioso por si el socket falla
+    const refreshInterval = setInterval(() => {
       loadProducts();
-    });
+    }, 60000);
 
     // Cleanup
     return () => {
-      socket.off('products:changed');
+      socket.off('products:changed', handleProductsChanged);
+      socket.off('connect', handleSocketConnect);
+      socket.off('disconnect', handleSocketDisconnect);
+      clearInterval(refreshInterval);
     };
   }, []);
 
@@ -353,6 +390,7 @@ export default function App() {
                             alt={product.name} 
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
+                            onError={handleImageError}
                           />
                           {!product.available && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -364,7 +402,7 @@ export default function App() {
                         <div className="p-5 flex-1 flex flex-col justify-between">
                           <h3 className="text-xl font-bold">{product.name}</h3>
                           <div className="flex items-center justify-between">
-                            <span className="text-2xl font-black text-orange-600">${product.price.toFixed(2)}</span>
+                            <span className="text-2xl font-black text-orange-600">Bs {product.price.toFixed(2)}</span>
                             <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center">
                               <Plus size={24} />
                             </div>
@@ -401,7 +439,7 @@ export default function App() {
                 ) : (
                   cart.map((item) => (
                     <div key={item.id} className="flex gap-4">
-                      <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" alt={item.name} referrerPolicy="no-referrer" />
+                      <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" alt={item.name} referrerPolicy="no-referrer" onError={handleImageError} />
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-bold leading-tight">{item.name}</h4>
@@ -415,7 +453,7 @@ export default function App() {
                             <span className="w-8 text-center font-bold">{item.quantity}</span>
                             <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center text-stone-500"><Plus size={16} /></button>
                           </div>
-                          <span className="font-bold text-stone-700">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-stone-700">Bs {(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
@@ -426,7 +464,7 @@ export default function App() {
               <div className="p-6 bg-stone-50 border-t border-stone-200">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-stone-500 font-medium">Subtotal</span>
-                  <span className="text-3xl font-black text-stone-900">${subtotal.toFixed(2)}</span>
+                  <span className="text-3xl font-black text-stone-900">Bs {subtotal.toFixed(2)}</span>
                 </div>
                 <button 
                   disabled={cart.length === 0}
@@ -463,10 +501,10 @@ export default function App() {
                         </div>
                         <div>
                           <h4 className="font-bold text-lg">{item.name}</h4>
-                          <p className="text-stone-400 text-sm">${item.price.toFixed(2)} c/u</p>
+                          <p className="text-stone-400 text-sm">Bs {item.price.toFixed(2)} c/u</p>
                         </div>
                       </div>
-                      <span className="text-xl font-bold">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="text-xl font-bold">Bs {(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -476,16 +514,16 @@ export default function App() {
                 <div className="space-y-4 mb-auto">
                   <div className="flex justify-between text-stone-400">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>Bs {subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-stone-400">
                     <span>Impuestos (10%)</span>
-                    <span>${(subtotal * 0.1).toFixed(2)}</span>
+                    <span>Bs {(subtotal * 0.1).toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-stone-800 my-6" />
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold">TOTAL</span>
-                    <span className="text-5xl font-black text-orange-500">${(subtotal * 1.1).toFixed(2)}</span>
+                    <span className="text-5xl font-black text-orange-500">Bs {(subtotal * 1.1).toFixed(2)}</span>
                   </div>
                 </div>
                 <button 
@@ -527,7 +565,7 @@ export default function App() {
               <div className="flex items-center justify-center gap-8 mb-12">
                 <div className="text-center">
                   <p className="text-stone-400 text-sm font-bold uppercase tracking-widest mb-1">Monto Exacto</p>
-                  <p className="text-4xl font-black text-orange-600">${(subtotal * 1.1).toFixed(2)}</p>
+                  <p className="text-4xl font-black text-orange-600">Bs {(subtotal * 1.1).toFixed(2)}</p>
                 </div>
                 <div className="w-px h-16 bg-stone-200" />
                 <div className="text-center">
@@ -607,6 +645,7 @@ export default function App() {
                   alt={selectedProduct.name} 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
                 <button 
                   onClick={() => setSelectedProduct(null)}
@@ -619,7 +658,7 @@ export default function App() {
                 <div className="mb-auto">
                   <div className="flex justify-between items-start mb-4">
                     <h2 className="text-4xl font-black leading-tight">{selectedProduct.name}</h2>
-                    <span className="text-3xl font-black text-orange-600">${selectedProduct.price.toFixed(2)}</span>
+                    <span className="text-3xl font-black text-orange-600">Bs {selectedProduct.price.toFixed(2)}</span>
                   </div>
                   <p className="text-xl text-stone-500 leading-relaxed">{selectedProduct.description}</p>
                 </div>
