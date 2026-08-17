@@ -3,7 +3,13 @@ import pool from '../../Providers/DatabaseProvider'
 
 export const getAll = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const query = 'SELECT * FROM categorias WHERE activo = 1 ORDER BY nombre ASC'
+    const query = `
+      SELECT c.*, p.nombre as puesto_nombre
+      FROM categorias c
+      LEFT JOIN puestos_cocina p ON c.puesto_cocina_id = p.id
+      WHERE c.activo = 1
+      ORDER BY c.nombre ASC
+    `
     const [rows] = await pool.execute(query)
 
     res.json({
@@ -25,7 +31,12 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
 
-    const query = 'SELECT * FROM categorias WHERE id = ? AND activo = 1'
+    const query = `
+      SELECT c.*, p.nombre as puesto_nombre
+      FROM categorias c
+      LEFT JOIN puestos_cocina p ON c.puesto_cocina_id = p.id
+      WHERE c.id = ? AND c.activo = 1
+    `
     const [rows] = await pool.execute(query, [id])
 
     if ((rows as any[]).length === 0) {
@@ -52,7 +63,7 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
 
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { nombre, descripcion, icono, color } = req.body
+    const { nombre, descripcion, icono, color, puesto_cocina_id } = req.body
 
     if (!nombre) {
       res.status(400).json({
@@ -74,16 +85,21 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     }
 
     const insertQuery = `
-      INSERT INTO categorias (nombre, descripcion, icono, color, activo, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 1, NOW(), NOW())
+      INSERT INTO categorias (nombre, descripcion, icono, color, puesto_cocina_id, activo, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())
     `
 
     const [result] = await pool.execute(insertQuery, [
       nombre,
       descripcion || null,
       icono || null,
-      color || null
+      color || null,
+      puesto_cocina_id || null
     ])
+
+    if (global.io) {
+      global.io.emit('categories:changed', { action: 'create', categoryId: (result as any).insertId })
+    }
 
     res.status(201).json({
       success: true,
@@ -94,6 +110,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         descripcion,
         icono,
         color,
+        puesto_cocina_id,
         activo: 1
       }
     })
@@ -110,7 +127,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 export const update = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
-    const { nombre, descripcion, icono, color } = req.body
+    const { nombre, descripcion, icono, color, puesto_cocina_id } = req.body
 
     const checkQuery = 'SELECT id FROM categorias WHERE id = ? AND activo = 1'
     const [existing] = await pool.execute(checkQuery, [id])
@@ -142,15 +159,17 @@ export const update = async (req: Request, res: Response): Promise<void> => {
           descripcion = COALESCE(?, descripcion),
           icono = COALESCE(?, icono),
           color = COALESCE(?, color),
+          puesto_cocina_id = COALESCE(?, puesto_cocina_id),
           updated_at = NOW()
       WHERE id = ? AND activo = 1
     `
 
     const [result] = await pool.execute(updateQuery, [
-      nombre,
-      descripcion,
-      icono,
-      color,
+      nombre ?? null,
+      descripcion ?? null,
+      icono ?? null,
+      color ?? null,
+      puesto_cocina_id ?? null,
       id
     ])
 
@@ -162,10 +181,14 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       return
     }
 
+    if (global.io) {
+      global.io.emit('categories:changed', { action: 'update', categoryId: id })
+    }
+
     res.json({
       success: true,
       message: 'Categoría actualizada exitosamente',
-      data: { id, nombre, descripcion, icono, color }
+      data: { id, nombre, descripcion, icono, color, puesto_cocina_id }
     })
   } catch (error: any) {
     console.error('Error al actualizar categoría:', error)
@@ -214,6 +237,10 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
         message: 'No se pudo eliminar la categoría'
       })
       return
+    }
+
+    if (global.io) {
+      global.io.emit('categories:changed', { action: 'delete', categoryId: id })
     }
 
     res.json({

@@ -2,6 +2,7 @@ import http from 'http'
 import { Server } from 'socket.io'
 import expressApp from '../app/Providers/AppProvider'
 import { registerRoutes } from '../app/Providers/RouteProvider'
+import { errorHandler } from '../app/Exceptions/Handler'
 import { testConnection } from '../app/Providers/DatabaseProvider'
 import config from '../config/app'
 
@@ -26,6 +27,7 @@ io.on('connection', (socket) => {
 })
 
 registerRoutes(expressApp)
+expressApp.use(errorHandler)
 
 declare global {
   var io: Server | undefined

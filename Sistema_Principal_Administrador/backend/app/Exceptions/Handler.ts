@@ -27,6 +27,17 @@ export const errorHandler = (
     return
   }
 
+  if ((err as any).name === 'MulterError') {
+    const message = (err as any).code === 'LIMIT_FILE_SIZE'
+      ? 'El archivo supera el tamaño máximo permitido (5MB)'
+      : 'Error al subir el archivo'
+    res.status(400).json({
+      success: false,
+      message
+    })
+    return
+  }
+
   res.status(500).json({
     success: false,
     message: 'Error interno del servidor',

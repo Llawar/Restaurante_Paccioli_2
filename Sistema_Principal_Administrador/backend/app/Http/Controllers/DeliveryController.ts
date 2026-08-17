@@ -111,6 +111,11 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     await connection.commit()
     connection.release()
 
+    if (global.io) {
+      global.io.emit('delivery:changed', { action: 'create', deliveryId: (result as any).insertId })
+      global.io.emit('pedidos:changed', { action: 'create', deliveryId: (result as any).insertId })
+    }
+
     res.status(201).json({
       success: true,
       message: 'Delivery creado exitosamente',
@@ -154,6 +159,10 @@ export const asignarRepartidor = async (req: Request, res: Response): Promise<vo
         message: 'No se pudo asignar repartidor. Verifique que el delivery esté pendiente.'
       })
       return
+    }
+
+    if (global.io) {
+      global.io.emit('delivery:changed', { action: 'asignar', deliveryId: id })
     }
 
     res.json({
@@ -208,6 +217,11 @@ export const updateEstado = async (req: Request, res: Response): Promise<void> =
           ['entregado', pedidoId]
         )
       }
+    }
+
+    if (global.io) {
+      global.io.emit('delivery:changed', { deliveryId: id, estado })
+      global.io.emit('pedidos:changed', { deliveryId: id, estado })
     }
 
     res.json({

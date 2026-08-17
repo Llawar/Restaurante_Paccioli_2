@@ -27,6 +27,34 @@ export const getAll = async (_req: Request, res: Response): Promise<void> => {
   }
 }
 
+export const getAllAdmin = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const query = `
+      SELECT p.*, c.nombre as categoria_nombre,
+             IFNULL(SUM(CASE WHEN dp.estado_cocina = 'listo' THEN dp.cantidad END), 0) as vendidos
+      FROM productos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      LEFT JOIN detalles_pedido dp ON dp.producto_id = p.id
+      GROUP BY p.id
+      ORDER BY p.nombre ASC
+    `
+    const [rows] = await pool.execute(query)
+
+    res.json({
+      success: true,
+      count: (rows as any[]).length,
+      data: rows
+    })
+  } catch (error: any) {
+    console.error('Error al obtener productos (admin):', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener productos',
+      error: error.message
+    })
+  }
+}
+
 export const getById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
@@ -248,6 +276,43 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       message: 'Error al eliminar producto',
+      error: error.message
+    })
+  }
+}
+
+export const toggleStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+
+    const updateQuery = 'UPDATE productos SET activo = IF(activo = 1, 0, 1), updated_at = NOW() WHERE id = ?'
+    const [result] = await pool.execute(updateQuery, [id])
+
+    if ((result as any).affectedRows === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado'
+      })
+      return
+    }
+
+    const [rows] = await pool.execute('SELECT activo FROM productos WHERE id = ?', [id])
+    const activo = (rows as any[])[0]?.activo ?? 1
+
+    if (global.io) {
+      global.io.emit('products:changed', { action: 'toggle', productId: id, activo })
+    }
+
+    res.json({
+      success: true,
+      message: activo ? 'Producto activado' : 'Producto desactivado',
+      data: { id, activo }
+    })
+  } catch (error: any) {
+    console.error('Error al cambiar estado del producto:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar estado del producto',
       error: error.message
     })
   }

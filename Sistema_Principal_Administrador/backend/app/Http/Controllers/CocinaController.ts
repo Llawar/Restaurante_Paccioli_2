@@ -63,8 +63,7 @@ export const getPuestosCocina = async (_req: Request, res: Response): Promise<vo
         pc.*,
         GROUP_CONCAT(c.nombre) as categorias_asignadas
       FROM puestos_cocina pc
-      LEFT JOIN asignacion_puestos_categorias apc ON pc.id = apc.puesto_id
-      LEFT JOIN categorias c ON apc.categoria_id = c.id
+      LEFT JOIN categorias c ON pc.id = c.puesto_cocina_id AND c.activo = 1
       WHERE pc.activo = 1
       GROUP BY pc.id
       ORDER BY pc.id
@@ -81,6 +80,59 @@ export const getPuestosCocina = async (_req: Request, res: Response): Promise<vo
     res.status(500).json({
       success: false,
       message: 'Error al obtener puestos de cocina'
+    })
+  }
+}
+
+export const getMiPuesto = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
+      })
+      return
+    }
+
+    const query = `
+      SELECT pc.id, pc.nombre, pc.descripcion, u.puesto_cocina_id
+      FROM usuarios u
+      LEFT JOIN puestos_cocina pc ON u.puesto_cocina_id = pc.id
+      WHERE u.id = ?
+    `
+    const [rows] = await pool.execute(query, [userId])
+    const row = (rows as any[])[0]
+
+    if (!row) {
+      res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      })
+      return
+    }
+
+    const esCocinero = req.user?.rol === 'cocinero'
+
+    res.json({
+      success: true,
+      data: {
+        puestoCocinaId: row.puesto_cocina_id,
+        esCocinero,
+        puesto: row.puesto_cocina_id
+          ? { id: row.id, nombre: row.nombre, descripcion: row.descripcion }
+          : null,
+        // Los admin/empleados sin puesto asignado pueden elegir cualquier puesto
+        requiereSeleccion: esCocinero ? false : !row.puesto_cocina_id
+      }
+    })
+  } catch (error: any) {
+    console.error('Error al obtener mi puesto:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener mi puesto',
+      error: error.message
     })
   }
 }
@@ -128,7 +180,9 @@ export const cambiarEstadoItem = async (req: Request, res: Response): Promise<vo
     await connection.beginTransaction()
 
     const { detalleId } = req.params
-    const { nuevoEstado, cocineroId } = req.body
+    const { nuevoEstado } = req.body
+    // Cocinero identificado desde el token JWT (no confiar en el body)
+    const cocineroId = req.user?.id ?? null
 
     let updateQuery: string
     let params: any[] = [nuevoEstado]
@@ -220,15 +274,13 @@ export const asignarItemsAPuestos = async (pedidoId: number): Promise<boolean> =
     const [items] = await pool.execute(itemsQuery, [pedidoId])
 
     for (const item of items as any[]) {
+      // 1 categoría → 1 puesto (columna categorias.puesto_cocina_id)
       const puestoQuery = `
-        SELECT pc.id, COUNT(dp.id) as carga_actual
-        FROM puestos_cocina pc
-        JOIN asignacion_puestos_categorias apc ON pc.id = apc.puesto_id
-        LEFT JOIN detalles_pedido dp ON pc.id = dp.puesto_asignado_id
-          AND dp.estado_cocina IN ('pendiente', 'en_preparacion')
-        WHERE apc.categoria_id = ? AND pc.activo = 1
-        GROUP BY pc.id
-        ORDER BY carga_actual ASC
+        SELECT pc.id, pc.nombre
+        FROM categorias c
+        JOIN puestos_cocina pc ON c.puesto_cocina_id = pc.id
+        WHERE c.id = ? AND pc.activo = 1 AND pc.id != 6
+        ORDER BY pc.id ASC
         LIMIT 1
       `
       const [puestos] = await pool.execute(puestoQuery, [item.categoria_id])

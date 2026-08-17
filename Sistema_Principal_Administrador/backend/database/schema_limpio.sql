@@ -1,5 +1,8 @@
 -- Sistema de Administración para Restaurante - Esquema de Base de Datos
 -- Base de datos: restaurant_system_db
+-- VERSIÓN LIMPIA: solo estructura + datos base mínimos (admin, puestos, unidades).
+-- Sin datos de ejemplo: categorías, productos, mesas, clientes, proveedores, etc. se
+-- crean desde el panel de administración.
 
 -- Crear base de datos
 CREATE DATABASE IF NOT EXISTS restaurant_system_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -174,54 +177,6 @@ CREATE TABLE detalles_pedido (
 );
 
 -- ============================================================
--- ============ SEMILLAS BASE (re-ejecutables) ================
--- ============================================================
-
--- Insertar usuario admin por defecto (password: admin123)
--- La contraseña está encriptada con bcrypt (10 rounds)
-INSERT INTO usuarios (id, nombre, usuario, password, email, rol, activo) VALUES
-(1, 'Administrador', 'admin', '$2b$10$16zzQcLELr0Gqno9yzxyYeevXCMqTyJ2uA6LnrxkumnPzp.UtNRe.', 'admin@restaurante.com', 'admin', 1)
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  password = VALUES(password),
-  email = VALUES(email),
-  rol = VALUES(rol),
-  activo = VALUES(activo);
-
--- Insertar categorías de ejemplo (IDs fijos 1-5)
-INSERT INTO categorias (id, nombre, descripcion, icono, color, puesto_cocina_id, activo) VALUES
-(1, 'Entradas', 'Aperitivos y entradas', 'utensils', '#FF6B6B', 3, 1),
-(2, 'Platos Principales', 'Platos fuertes y principales', 'utensils', '#4ECDC4', 1, 1),
-(3, 'Bebidas', 'Bebidas refrescantes', 'glass-water', '#45B7D1', 4, 1),
-(4, 'Postres', 'Dulces y postres', 'ice-cream', '#F7DC6F', 5, 1),
-(5, 'Bebidas Alcohólicas', 'Cervezas, vinos y cocktails', 'wine-glass', '#BB8FCE', 4, 1)
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  descripcion = VALUES(descripcion),
-  icono = VALUES(icono),
-  color = VALUES(color),
-  puesto_cocina_id = VALUES(puesto_cocina_id),
-  activo = VALUES(activo);
-
--- Insertar los 6 puestos de cocina
-INSERT INTO puestos_cocina (id, nombre, descripcion, activo) VALUES
-(1, 'Puesto 1 - Carnes y Parrilla', 'Especializado en carnes rojas, pollo, parrilla', 1),
-(2, 'Puesto 2 - Pastas y Guarniciones', 'Pastas, arroces, papas y acompañamientos', 1),
-(3, 'Puesto 3 - Entradas y Ensaladas', 'Ensaladas, sopas, aperitivos fríos', 1),
-(4, 'Puesto 4 - Bebidas y Bar', 'Bebidas sin alcohol, jugos, café', 1),
-(5, 'Puesto 5 - Postres', 'Postres, dulces, helados', 1),
-(6, 'Puesto 6 - Especial y Apoyo', 'Platos especiales, apoyo a otros puestos', 1)
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  descripcion = VALUES(descripcion),
-  activo = VALUES(activo);
-
--- Asignación de categorías a puestos (configurable según tu restaurante)
--- NOTA: la asignación es DETERMINISTA por menor id de puesto (ver CocinaController.asignarItemsAPuestos)
--- y se guarda directamente en categorias.puesto_cocina_id (1 categoría → 1 puesto).
--- Puesto 6 (Apoyo) queda SIN asignación automática: se usa solo como refuerzo manual.
-
--- ============================================================
 -- ============ GASTROSTOCK — GESTIÓN DE INVENTARIO ============
 -- ============================================================
 -- Módulo de almacén: proveedores, compras, lotes, Kardex (PEPS),
@@ -373,6 +328,38 @@ CREATE TABLE auditoria (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
+-- ============================================================
+-- ============ SEMILLAS BASE MÍNIMAS (re-ejecutables) ========
+-- ============================================================
+-- Solamente lo indispensable para que el sistema arranque:
+--  1) Usuario admin (para poder iniciar sesión)
+--  2) Los 6 puestos de cocina (el flujo de cocina los requiere)
+--  3) Unidades de medida (referenciadas por el módulo de inventario)
+-- SIN datos de ejemplo (categorías, productos, mesas, clientes, proveedores...).
+
+-- Insertar usuario admin por defecto (password: admin123)
+INSERT INTO usuarios (id, nombre, usuario, password, email, rol, activo) VALUES
+(1, 'Administrador', 'admin', '$2b$10$16zzQcLELr0Gqno9yzxyYeevXCMqTyJ2uA6LnrxkumnPzp.UtNRe.', 'admin@restaurante.com', 'admin', 1)
+ON DUPLICATE KEY UPDATE
+  nombre = VALUES(nombre),
+  password = VALUES(password),
+  email = VALUES(email),
+  rol = VALUES(rol),
+  activo = VALUES(activo);
+
+-- Insertar los 6 puestos de cocina
+INSERT INTO puestos_cocina (id, nombre, descripcion, activo) VALUES
+(1, 'Puesto 1 - Carnes y Parrilla', 'Especializado en carnes rojas, pollo, parrilla', 1),
+(2, 'Puesto 2 - Pastas y Guarniciones', 'Pastas, arroces, papas y acompañamientos', 1),
+(3, 'Puesto 3 - Entradas y Ensaladas', 'Ensaladas, sopas, aperitivos fríos', 1),
+(4, 'Puesto 4 - Bebidas y Bar', 'Bebidas sin alcohol, jugos, café', 1),
+(5, 'Puesto 5 - Postres', 'Postres, dulces, helados', 1),
+(6, 'Puesto 6 - Especial y Apoyo', 'Platos especiales, apoyo a otros puestos', 1)
+ON DUPLICATE KEY UPDATE
+  nombre = VALUES(nombre),
+  descripcion = VALUES(descripcion),
+  activo = VALUES(activo);
+
 -- Unidades de medida iniciales
 INSERT INTO unidades_medida (id, nombre, abreviatura) VALUES
 (1, 'Kilogramo', 'Kg'),
@@ -385,82 +372,3 @@ INSERT INTO unidades_medida (id, nombre, abreviatura) VALUES
 ON DUPLICATE KEY UPDATE
   nombre = VALUES(nombre),
   abreviatura = VALUES(abreviatura);
-
--- ============================================================
--- ============ DATOS DEL RESTAURANTE (re-ejecutables) ========
--- ============================================================
-
--- Mesas (7): Mesa 1-7, libres
-INSERT INTO mesas (id, numero_mesa, capacidad, estado, ubicacion, activo) VALUES
-(1, 1, 2, 'libre', 'Principal', 1),
-(2, 2, 4, 'libre', 'Principal', 1),
-(3, 3, 4, 'libre', 'Principal', 1),
-(4, 4, 6, 'libre', 'Principal', 1),
-(5, 5, 6, 'libre', 'Terraza', 1),
-(6, 6, 8, 'libre', 'Terraza', 1),
-(7, 7, 8, 'libre', 'VIP', 1)
-ON DUPLICATE KEY UPDATE
-  numero_mesa = VALUES(numero_mesa),
-  capacidad = VALUES(capacidad),
-  estado = VALUES(estado),
-  ubicacion = VALUES(ubicacion),
-  activo = VALUES(activo);
-
--- Clientes (5) de ejemplo
-INSERT INTO clientes (id, nombre, telefono, email, direccion, notas) VALUES
-(1, 'Juan Pérez', '70012345', 'juan.perez@mail.com', 'Av. Principal #123', 'Cliente frecuente'),
-(2, 'María Gómez', '70022334', 'maria.gomez@mail.com', 'Calle Los Olivos #45', NULL),
-(3, 'Carlos Rodríguez', '70033445', 'carlos.rodriguez@mail.com', 'Av. Central #890', 'Pide café sin azúcar'),
-(4, 'Ana Martínez', '70044556', 'ana.martinez@mail.com', 'Zona Sur, Av. 2do Anillo', 'Prefiere mesa en terraza'),
-(5, 'Luis Fernández', '70055667', 'luis.fernandez@mail.com', 'Calle Del Parque #12', NULL)
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  telefono = VALUES(telefono),
-  email = VALUES(email),
-  direccion = VALUES(direccion),
-  notas = VALUES(notas);
-
--- Proveedores (4): almacén, carnicería, panadería, bebidas
-INSERT INTO proveedores (id, nombre, nit, telefono, correo, direccion, contacto, activo) VALUES
-(1, 'Almacén Central', '1000001021', '70010001', 'almacen.central@mail.com', 'Av. Industrial #77', 'Pedro Quispe', 1),
-(2, 'Carnicería La Especial', '1000002021', '70020002', 'carnes.especial@mail.com', 'Mercado Central, Puesto 15', 'Jorge Mamani', 1),
-(3, 'Panadería El Trigal', '1000003021', '70030003', 'trigal.pan@mail.com', 'Calle Panaderos #3', 'Rosa Vargas', 1),
-(4, 'Distribuidora de Bebidas', '1000004021', '70040004', 'bebidas.dist@mail.com', 'Av. Comercial #55', 'Miguel Rojas', 1)
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  nit = VALUES(nit),
-  telefono = VALUES(telefono),
-  correo = VALUES(correo),
-  direccion = VALUES(direccion),
-  contacto = VALUES(contacto),
-  activo = VALUES(activo);
-
--- Ubicaciones de almacén (4)
-INSERT INTO ubicaciones (id, nombre, tipo) VALUES
-(1, 'Estantería A-01', 'estanteria'),
-(2, 'Refrigerador REF-01', 'refrigerador'),
-(3, 'Congelador CON-01', 'congelador'),
-(4, 'General', 'general')
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  tipo = VALUES(tipo);
-
--- Subcategorías de productos
-INSERT INTO subcategorias (id, categoria_id, nombre) VALUES
--- Platos Principales (categoría 2)
-(1, 2, 'Hamburguesas'),
-(2, 2, 'Pizzas'),
-(3, 2, 'Ensaladas'),
--- Bebidas (categoría 3)
-(4, 3, 'Refrescos'),
-(5, 3, 'Jugos'),
-(6, 3, 'Café'),
--- Postres (categoría 4)
-(7, 4, 'Tartas'),
-(8, 4, 'Helados')
-ON DUPLICATE KEY UPDATE
-  categoria_id = VALUES(categoria_id),
-  nombre = VALUES(nombre);
-
--- La carta de productos (productos, inventario y movimientos_inventario) se
--- carga desde el panel de administración; no se siembra para evitar datos por defecto.

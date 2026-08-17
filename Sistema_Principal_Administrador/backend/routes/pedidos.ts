@@ -8,6 +8,7 @@ const router = Router()
 router.get('/', verifyToken, getAll)
 router.get('/display', getParaDisplay)
 router.get('/:id', verifyToken, getById)
+router.post('/publico', create)
 router.post('/', verifyToken, isEmpleado, create)
 router.put('/:id/estado', verifyToken, isEmpleado, updateEstado)
 

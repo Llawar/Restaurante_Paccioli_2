@@ -218,6 +218,10 @@ export const updateEstado = async (req: Request, res: Response): Promise<void> =
       return
     }
 
+    if (global.io) {
+      global.io.emit('pedidos:changed', { pedidoId: id, estado })
+    }
+
     res.json({
       success: true,
       message: 'Estado del pedido actualizado exitosamente'

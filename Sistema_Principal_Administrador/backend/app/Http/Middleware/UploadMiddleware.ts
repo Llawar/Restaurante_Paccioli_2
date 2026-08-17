@@ -1,6 +1,7 @@
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import { HttpException } from '../../Exceptions/Handler'
 
 const uploadsDir = path.join(__dirname, '../../../uploads/productos')
 if (!fs.existsSync(uploadsDir)) {
@@ -26,7 +27,7 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
   if (extname && mimetype) {
     cb(null, true)
   } else {
-    cb(new Error('Solo se permiten archivos de imagen: JPEG, JPG, PNG, WEBP, GIF'))
+    cb(new HttpException(400, 'Imagen no admitida. Formatos permitidos: JPEG, JPG, PNG, WEBP o GIF'))
   }
 }
 
