@@ -96,7 +96,7 @@ export default function App() {
           pedidosOcultos.current.add(pedido.id);
           // Forzar re-render para ocultar el pedido
           setPedidos(prev => [...prev]);
-        }, 20000); // 20 segundos
+        }, 40000); // 40 segundos
         
         pedidosListosTimers.current.set(pedido.id, timer);
       }
@@ -127,6 +127,11 @@ export default function App() {
       console.log('Nuevo pedido recibido');
       cargarPedidos();
     });
+    
+    socket.on('pedidos:changed', () => {
+      console.log('Pedido actualizado (pedidos:changed), recargando...');
+      cargarPedidos();
+    });
 
     // Refrescar cada 10 segundos como backup
     const interval = setInterval(cargarPedidos, 10000);
@@ -134,6 +139,7 @@ export default function App() {
     return () => {
       socket.off('kitchen:order_updated');
       socket.off('kitchen:new_order');
+      socket.off('pedidos:changed');
       clearInterval(interval);
     };
   }, []);
@@ -178,7 +184,11 @@ export default function App() {
   const pedidosPendientes = pedidos.filter(p => p.estado === 'pendiente');
   const pedidosPreparando = pedidos.filter(p => p.estado === 'preparando');
   // Filtrar pedidos listos para ocultar los que ya pasaron 20 segundos
-  const pedidosListos = pedidos.filter(p => p.estado === 'listo' && !pedidosOcultos.current.has(p.id));
+  // y mostrar solo los 5 más recientes (rotando: el más antiguo sale al llegar el 6to)
+  const pedidosListos = pedidos
+    .filter(p => p.estado === 'listo' && !pedidosOcultos.current.has(p.id))
+    .sort((a, b) => new Date(b.hora_pedido).getTime() - new Date(a.hora_pedido).getTime())
+    .slice(0, 5);
 
   const Columna = ({ titulo, pedidos: listaPedidos, config, tipo }: { 
     titulo: string; 
