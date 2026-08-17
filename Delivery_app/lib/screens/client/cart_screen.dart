@@ -1,0 +1,437 @@
+import 'package:delivery/providers/auth_provider.dart';
+import 'package:delivery/providers/cart_provider.dart';
+import 'package:delivery/providers/user_provider.dart';
+import 'package:delivery/widgets/custom_widgets.dart';
+import 'package:delivery/widgets/product_widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+
+class CartScreen extends StatefulWidget {
+  const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _cardHolderController = TextEditingController();
+  final _cardNumberController = TextEditingController();
+  final _cardExpiryController = TextEditingController();
+  final _cardCvvController = TextEditingController();
+  String _selectedPaymentMethod = 'Efectivo';
+  bool _isProcessing = false;
+
+  @override
+  void dispose() {
+    _cardHolderController.dispose();
+    _cardNumberController.dispose();
+    _cardExpiryController.dispose();
+    _cardCvvController.dispose();
+    super.dispose();
+  }
+
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('El servicio de ubicación está desactivado')),
+          );
+        }
+        return null;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permiso de ubicación denegado')),
+            );
+          }
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permisos de ubicación denegados permanentemente')),
+          );
+        }
+        return null;
+      }
+
+      return await Geolocator.getCurrentPosition();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al obtener ubicación: $e')),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _checkout() async {
+    if (_formKey.currentState!.validate()) {
+      if (_selectedPaymentMethod == 'Tarjeta') {
+        if (_cardNumberController.text.length < 16 || 
+            _cardExpiryController.text.isEmpty || 
+            _cardCvvController.text.length != 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Por favor, completa los datos de la tarjeta')),
+          );
+          return;
+        }
+      }
+      setState(() {
+        _isProcessing = true;
+      });
+  
+      final cartProvider = context.read<CartProvider>();
+      final authProvider = context.read<AuthProvider>();
+      final userProvider = context.read<UserProvider>();
+ 
+      Position? position = await _getCurrentLocation();
+      double lat = position?.latitude ?? 0.0;
+      double lng = position?.longitude ?? 0.0;
+      String address = 'Ubicación automática';
+
+      if (position != null) {
+        try {
+          List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+          if (placemarks.isNotEmpty) {
+            Placemark place = placemarks[0];
+            address = '${place.street}, ${place.locality}, ${place.country}';
+          }
+        } catch (e) {
+          debugPrint('Error reverse geocoding: $e');
+        }
+      }
+  
+       final success = await cartProvider.checkout(
+        authProvider.currentUser!.id,
+        address,
+        _selectedPaymentMethod,
+        lat,
+        lng,
+      );
+ 
+      setState(() {
+        _isProcessing = false;
+      });
+ 
+      if (mounted) {
+        if (success) {
+          await userProvider.fetchClientOrders(authProvider.currentUser!.id);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('¡Pedido realizado exitosamente!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al crear el pedido'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Widget _buildPaymentDetails() {
+    switch (_selectedPaymentMethod) {
+      case 'Tarjeta':
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Datos de la Tarjeta',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            CustomTextField(
+              label: 'Nombre del Titular',
+              controller: _cardHolderController,
+              hintText: 'Nombre completo',
+              prefixIcon: const Icon(Icons.person),
+              validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
+            ),
+            const SizedBox(height: 12),
+            CustomTextField(
+              label: 'Número de Tarjeta',
+              controller: _cardNumberController,
+              hintText: '0000 0000 0000 0000',
+              prefixIcon: const Icon(Icons.credit_card),
+              keyboardType: TextInputType.number,
+              validator: (value) => (value == null || value.length < 16) ? 'Número inválido' : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    label: 'MM/AA',
+                    controller: _cardExpiryController,
+                    hintText: 'MM/AA',
+                    prefixIcon: const Icon(Icons.calendar_today),
+                    keyboardType: TextInputType.number,
+                    validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CustomTextField(
+                    label: 'CVV',
+                    controller: _cardCvvController,
+                    hintText: '123',
+                    prefixIcon: const Icon(Icons.lock),
+                    keyboardType: TextInputType.number,
+                    validator: (value) => (value == null || value.length != 3) ? 'Inválido' : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      case 'QR':
+        return Column(
+          children: [
+            const Text(
+              'Escanea el código QR para pagar',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Image.network(
+                  'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=PAGO_DELIVERY_PRO',
+                  width: 150,
+                  height: 150,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.qr_code, size: 150),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Utiliza tu App Bancaria para escanear',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        );
+      case 'Efectivo':
+      default:
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.money, color: Colors.orange),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Pagarás en efectivo al recibir tu entrega.',
+                  style: TextStyle(fontSize: 13, color: Colors.orange),
+                ),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mi Carrito'), elevation: 0),
+      body: Consumer<CartProvider>(
+        builder: (context, cartProvider, _) {
+          if (cartProvider.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Tu carrito está vacío',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Volver a comprar'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: List.generate(
+                      cartProvider.items.length,
+                      (index) => CartItemWidget(item: cartProvider.items[index]),
+                    ),
+                  ),
+                ),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Resumen del Pedido',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Subtotal:'),
+                          Text(
+                            '\$${cartProvider.total.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Envío:'),
+                          const Text(
+                            '\$0.00',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '\$${cartProvider.total.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         const Text(
+                           'Método de Pago',
+                           style: TextStyle(
+                             fontSize: 14,
+                             fontWeight: FontWeight.bold,
+                           ),
+                         ),
+                         const SizedBox(height: 12),
+                         DropdownButtonFormField<String>(
+                          value: _selectedPaymentMethod,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.payment),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'Efectivo', child: Text('Efectivo')),
+                            DropdownMenuItem(value: 'Tarjeta', child: Text('Tarjeta')),
+                            DropdownMenuItem(value: 'QR', child: Text('QR / Pago Móvil')),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedPaymentMethod = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPaymentDetails(),
+                        const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: CustomButton(
+                              label: 'Confirmar Pedido',
+                              onPressed: _checkout,
+                              isLoading: _isProcessing,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
