@@ -32,20 +32,22 @@ Sistema completo de **Punto de Venta (POS)** y **Gestión de Restaurante** para 
 │  └─────────────────────────────────────────────┘  │
 │                                                   │
 │  ┌────────── Tablet Kiosco ────────────────┐     │
-│  │  http://192.168.1.100:3000              │     │
+│  │  http://IP_DEL_SERVIDOR:3000            │     │
 │  └──────────────────────────────────────────────┘ │
 │                                                   │
 │  ┌────────── TV Display ───────────────────┐     │
-│  │  http://192.168.1.100:5176              │     │
+│  │  http://IP_DEL_SERVIDOR:5176            │     │
 │  └──────────────────────────────────────────────┘ │
 │                                                   │
 │  ┌────────── Celular Cocina ──────────────┐      │
-│  │  http://192.168.1.100:5175             │      │
+│  │  http://IP_DEL_SERVIDOR:5175           │      │
 │  └──────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────┘
 ```
 
 Todos los módulos se conectan al **mismo backend** mediante REST API + WebSocket (Socket.IO).
+
+> `IP_DEL_SERVIDOR` es la IP del equipo donde corre el backend. En cada dispositivo se define en el `.env` del frontend correspondiente (ver sección de variables de entorno).
 
 ## Instalación paso a paso
 
@@ -83,8 +85,6 @@ npm run dev
 ```bash
 cd App_Cocina
 npm install
-cp .env.example .env
-# Editar: VITE_API_URL=http://192.168.1.100:3006
 npm run dev
 ```
 
@@ -93,8 +93,6 @@ npm run dev
 ```bash
 cd App_Display_Clientes
 npm install
-cp .env.example .env
-# Editar: VITE_API_URL=http://192.168.1.100:3006
 npm run dev
 ```
 
@@ -103,12 +101,10 @@ npm run dev
 ```bash
 cd Sistema_Pedidos_Automatico
 npm install
-cp .env.example .env
-# Editar: VITE_API_URL=http://192.168.1.100:3006/api
 npm run dev
 ```
 
-> **Importante:** En cada dispositivo (tablet, TV, celular) reemplaza `localhost` por la **IP real** de la PC donde corre el backend.
+> **Importante:** Los frontends usan `http://localhost:3006` como respaldo. En producción (donde el backend corre en otro equipo o IP), define `VITE_API_URL` con la IP del servidor en el `.env` de cada frontend (ver sección de variables de entorno).
 
 ## Tecnologías Compartidas
 
@@ -133,22 +129,31 @@ npm run dev
 
 ## Configuración de variables de entorno
 
-Cada proyecto frontend lee la URL del backend desde un archivo `.env`:
+Cada proyecto frontend **puede** leer la URL del backend desde un archivo `.env`:
 
 ```env
 VITE_API_URL=http://IP_DEL_SERVIDOR:3006
 ```
 
+> **Opcional:** `VITE_API_URL` es opcional en desarrollo. Si no se define, el frontend usa `http://localhost:3006` como respaldo. En producción se define con la IP del servidor para que el frontend hable con el backend desde cualquier dispositivo (ver `GUIA_CONFIGURACION_WINDOWS_SERVER.md`).
+
 - **Sistema_Principal_Administrador/backend** → `.env` (credenciales MySQL + JWT)
-- **App_Cocina** → `.env` (solo `VITE_API_URL`)
-- **App_Display_Clientes** → `.env` (solo `VITE_API_URL`)
-- **Sistema_Pedidos_Automatico** → `.env` (solo `VITE_API_URL`)
+- **Sistema_Principal_Administrador/frontend** → `.env` (opcional: `VITE_API_URL`)
+- **App_Cocina** → `.env` (opcional: `VITE_API_URL`)
+- **App_Display_Clientes** → `.env` (opcional: `VITE_API_URL`)
+- **Sistema_Pedidos_Automatico** → `.env` (opcional: `VITE_API_URL`)
 
 Cada proyecto incluye un `.env.example` como plantilla. Copia y renombra a `.env`:
 
 ```bash
 cp .env.example .env
 ```
+
+Las imágenes de productos se sirven desde el backend en `/uploads` y se arman con la IP de `VITE_API_URL` (ya no están hardcodeadas a `localhost`).
+
+## Despliegue en Windows Server 2022
+
+Ver la guía completa en [`GUIA_CONFIGURACION_WINDOWS_SERVER.md`](GUIA_CONFIGURACION_WINDOWS_SERVER.md): IP fija, MySQL, build de los 4 frontends, `serve`, firewall y auto-arranque con PM2 para el servidor local del restaurante.
 
 ## Contribuir
 
