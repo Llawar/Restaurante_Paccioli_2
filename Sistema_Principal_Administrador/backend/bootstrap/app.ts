@@ -4,6 +4,7 @@ import expressApp from '../app/Providers/AppProvider'
 import { registerRoutes } from '../app/Providers/RouteProvider'
 import { errorHandler } from '../app/Exceptions/Handler'
 import { testConnection } from '../app/Providers/DatabaseProvider'
+import { iniciarDeliverySync } from '../app/Services/DeliverySyncService'
 import config from '../config/app'
 
 const server = http.createServer(expressApp)
@@ -47,4 +48,6 @@ export const startServer = async (): Promise<void> => {
     console.log(`Health check: http://localhost:${config.port}/api/health`)
     console.log(`WebSocket disponible en: ws://localhost:${config.port}`)
   })
+
+  iniciarDeliverySync()
 }

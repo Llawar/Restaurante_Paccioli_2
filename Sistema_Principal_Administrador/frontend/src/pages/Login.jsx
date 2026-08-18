@@ -8,9 +8,16 @@ import {
   Package,
   FileText,
   Users,
-  Loader2
+  Loader2,
+  LayoutDashboard,
+  ChefHat,
+  MonitorSmartphone,
+  ShoppingCart
 } from 'lucide-react';
 import { authApi } from '../services/auth.service';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
+const BASE_HOST = API_URL.replace('/api', '').replace(/:\d+$/, '');
 
 function Login() {
   const navigate = useNavigate();
@@ -218,6 +225,44 @@ function Login() {
                   className="py-2 px-4 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-primary hover:text-primary transition-colors"
                 >
                   Empleado
+                </button>
+              </div>
+            </div>
+          {/* Acceso a Sistemas */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <p className="text-sm text-gray-500 text-center mb-4">Acceso a Sistemas</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="flex flex-col items-center gap-2 py-4 px-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700 hover:text-primary transition-all"
+                >
+                  <LayoutDashboard size={24} />
+                  <span className="text-sm font-medium">Panel Admin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(`${BASE_HOST}:5175`, '_blank', 'noopener,noreferrer')}
+                  className="flex flex-col items-center gap-2 py-4 px-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700 hover:text-primary transition-all"
+                >
+                  <ChefHat size={24} />
+                  <span className="text-sm font-medium">Cocina</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(`${BASE_HOST}:5176`, '_blank', 'noopener,noreferrer')}
+                  className="flex flex-col items-center gap-2 py-4 px-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700 hover:text-primary transition-all"
+                >
+                  <MonitorSmartphone size={24} />
+                  <span className="text-sm font-medium">Display Clientes</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(`${BASE_HOST}:3000`, '_blank', 'noopener,noreferrer')}
+                  className="flex flex-col items-center gap-2 py-4 px-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700 hover:text-primary transition-all"
+                >
+                  <ShoppingCart size={24} />
+                  <span className="text-sm font-medium">Kiosco</span>
                 </button>
               </div>
             </div>
