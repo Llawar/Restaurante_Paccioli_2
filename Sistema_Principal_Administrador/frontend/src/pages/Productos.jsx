@@ -96,7 +96,7 @@ function Productos() {
         sold: p.vendidos || 0,
         status: p.activo ? 'activo' : 'inactivo',
         image: p.imagen && p.imagen.startsWith('/uploads/') 
-          ? `${(import.meta.env.VITE_API_URL || 'http://localhost:3006/api').replace(/\/api$/, '')}${p.imagen}` 
+          ? `${(import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3006/api`).replace(/\/api$/, '')}${p.imagen}` 
           : getEmojiForCategory(p.categoria_nombre || p.categoria)
       }));
       

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import pool from '../../Providers/DatabaseProvider'
+import { sincronizarCatalogoAhora } from '../../Services/CatalogoSyncService'
 
 export const getAll = async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -157,6 +158,8 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       global.io.emit('products:changed', { action: 'create', productId: (result as any).insertId })
     }
 
+    sincronizarCatalogoAhora()
+
     res.status(201).json({
       success: true,
       message: 'Producto creado exitosamente',
@@ -234,6 +237,8 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       global.io.emit('products:changed', { action: 'update', productId: id })
     }
 
+    sincronizarCatalogoAhora()
+
     res.json({
       success: true,
       message: 'Producto actualizado exitosamente'
@@ -266,6 +271,8 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     if (global.io) {
       global.io.emit('products:changed', { action: 'delete', productId: id })
     }
+
+    sincronizarCatalogoAhora()
 
     res.json({
       success: true,
@@ -302,6 +309,8 @@ export const toggleStatus = async (req: Request, res: Response): Promise<void> =
     if (global.io) {
       global.io.emit('products:changed', { action: 'toggle', productId: id, activo })
     }
+
+    sincronizarCatalogoAhora()
 
     res.json({
       success: true,

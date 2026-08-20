@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { ChefHat, CheckCircle, Clock, LogOut, User as UserIcon, Lock, AlertCircle } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3006';
+const HOST = window.location.hostname;
+const API_BASE = import.meta.env.VITE_API_URL || `http://${HOST}:3006`;
 const API_URL = `${API_BASE}/api`;
 const socket = io(API_BASE);
 const TOKEN_KEY = 'cocina_token';
@@ -16,6 +17,7 @@ interface Pedido {
   estado_cocina: string;
   notas_item?: string;
   numero_mesa?: number;
+  tipo_pedido?: string;
   hora_pedido: string;
 }
 
@@ -339,6 +341,7 @@ export default function App() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <span className="text-xs font-bold bg-gray-800 text-gray-300 px-2 py-1 rounded">Pedido #{p.pedido_id}</span>
+                  {p.tipo_pedido === 'delivery' && <span className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded ml-2">🛵 Delivery</span>}
                   {p.numero_mesa && <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded ml-2">Mesa {p.numero_mesa}</span>}
                 </div>
                 <span className="text-xs text-gray-500">{new Date(p.hora_pedido).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>

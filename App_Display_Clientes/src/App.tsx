@@ -9,7 +9,9 @@ import {
   Bell
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3006';
+const HOST = window.location.hostname;
+const API_BASE = import.meta.env.VITE_API_URL || 
+  `http://${HOST}:3006`;
 const API_URL = `${API_BASE}/api`;
 const socket = io(API_BASE);
 
@@ -263,7 +265,10 @@ export default function App() {
           // Diseño normal para otros estados
           <>
             {/* Número de pedido */}
-            <div className="text-sm text-gray-400 mb-2">Pedido #{pedido.id}</div>
+            <div className="text-sm text-gray-400 mb-2">
+              Pedido #{pedido.id}
+              {pedido.tipo === 'delivery' && <span className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded ml-2">🛵 Delivery</span>}
+            </div>
             
             {/* Estado principal */}
             <div className="flex items-center gap-3 mb-3">

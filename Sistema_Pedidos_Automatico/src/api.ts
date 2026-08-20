@@ -1,5 +1,6 @@
 // Servicio API para conectar con el backend principal
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
+const HOST = window.location.hostname;
+const API_URL = import.meta.env.VITE_API_URL || `http://${HOST}:3006/api`;
 
 export interface ApiProduct {
   id: number;

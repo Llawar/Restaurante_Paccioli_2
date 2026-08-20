@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { authApi } from '../services/auth.service';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
+const HOST = window.location.hostname;
+const API_URL = import.meta.env.VITE_API_URL || `http://${HOST}:3006/api`;
 const BASE_HOST = API_URL.replace('/api', '').replace(/:\d+$/, '');
 
 function Login() {

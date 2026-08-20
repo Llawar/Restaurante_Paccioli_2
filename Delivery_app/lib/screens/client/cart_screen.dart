@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:delivery/providers/auth_provider.dart';
 import 'package:delivery/providers/cart_provider.dart';
 import 'package:delivery/providers/user_provider.dart';
@@ -70,7 +72,18 @@ class _CartScreenState extends State<CartScreen> {
         return null;
       }
 
-      return await Geolocator.getCurrentPosition();
+      try {
+        return await Geolocator.getCurrentPosition().timeout(
+          const Duration(seconds: 15),
+        );
+      } on TimeoutException {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo obtener tu ubicación a tiempo. Intenta de nuevo.')),
+          );
+        }
+        return null;
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -104,18 +117,35 @@ class _CartScreenState extends State<CartScreen> {
       Position? position = await _getCurrentLocation();
       double lat = position?.latitude ?? 0.0;
       double lng = position?.longitude ?? 0.0;
-      String address = 'Ubicación automática';
 
-      if (position != null) {
-        try {
-          List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-          if (placemarks.isNotEmpty) {
-            Placemark place = placemarks[0];
-            address = '${place.street}, ${place.locality}, ${place.country}';
-          }
-        } catch (e) {
-          debugPrint('Error reverse geocoding: $e');
+      // La ubicación es obligatoria: sin coordenadas el repartidor no sabría a dónde llevar el pedido.
+      if (position == null || (lat == 0.0 && lng == 0.0)) {
+        setState(() {
+          _isProcessing = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Necesitamos tu ubicación para el envío. Activa los permisos y vuelve a intentar.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
+        return;
+      }
+
+      String address = 'Ubicación automática';
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          lat,
+          lng,
+        ).timeout(const Duration(seconds: 8));
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks[0];
+          address = '${place.street}, ${place.locality}, ${place.country}';
+        }
+      } catch (e) {
+        debugPrint('Error reverse geocoding: $e');
       }
   
        final success = await cartProvider.checkout(
@@ -327,7 +357,7 @@ class _CartScreenState extends State<CartScreen> {
                         children: [
                           const Text('Subtotal:'),
                           Text(
-                            '\$${cartProvider.total.toStringAsFixed(2)}',
+                            'Bs ${cartProvider.total.toStringAsFixed(2)}',
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -338,7 +368,7 @@ class _CartScreenState extends State<CartScreen> {
                         children: [
                           const Text('Envío:'),
                           const Text(
-                            '\$0.00',
+                            'Bs 0.00',
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -354,7 +384,7 @@ class _CartScreenState extends State<CartScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            '\$${cartProvider.total.toStringAsFixed(2)}',
+                            'Bs ${cartProvider.total.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

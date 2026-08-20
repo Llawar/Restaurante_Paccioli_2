@@ -21,7 +21,8 @@ import { Product, CartItem, Screen } from './types';
 import { apiService, ApiProduct } from './api';
 
 // Conexión WebSocket al backend
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api';
+const HOST = window.location.hostname;
+const API_URL = import.meta.env.VITE_API_URL || `http://${HOST}:3006/api`;
 const socket = io(API_URL.replace('/api', ''), {
   transports: ['websocket', 'polling'],
   reconnection: true,

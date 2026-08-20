@@ -48,12 +48,39 @@ const obtenerOCrearCategoriaDelivery = async (connection: any): Promise<number> 
   return (result as any).insertId
 }
 
+const obtenerPosIdDesdeSupabase = async (productoId: string): Promise<number | null> => {
+  try {
+    const { data } = await supabase!
+      .from('products')
+      .select('pos_id')
+      .eq('id', productoId)
+      .single()
+    return data?.pos_id ?? null
+  } catch (error) {
+    return null
+  }
+}
+
 const obtenerOCrearProducto = async (
   connection: any,
   nombre: string,
   precio: number,
-  categoriaId: number
+  categoriaId: number,
+  productoId?: string
 ): Promise<number> => {
+  if (productoId) {
+    const posId = await obtenerPosIdDesdeSupabase(productoId)
+    if (posId) {
+      const [rows] = await connection.execute(
+        'SELECT id FROM productos WHERE id = ? LIMIT 1',
+        [posId]
+      )
+      if ((rows as any[]).length > 0) {
+        return (rows as any[])[0].id
+      }
+    }
+  }
+
   const [rows] = await connection.execute(
     'SELECT id FROM productos WHERE nombre = ? LIMIT 1',
     [nombre]
@@ -118,7 +145,8 @@ const crearPedidoEnMySQL = async (orden: any): Promise<void> => {
         connection,
         item.nombre_producto || 'Producto',
         parseFloat(item.precio_unitario) || 0,
-        categoriaId
+        categoriaId,
+        item.producto_id
       )
       const cantidad = parseInt(item.cantidad) || 1
       const precioUnitario = parseFloat(item.precio_unitario) || 0

@@ -139,6 +139,54 @@ Al arrancar deberías ver el log:
 
 ---
 
+## Catálogo POS → Supabase (productos)
+
+Sincroniza el catálogo de productos del **POS (MySQL)** hacia la tabla `products` de **Supabase**, para que la app de delivery muestre los mismos productos (nombres, precios, imágenes, disponibilidad).
+
+### Componentes
+
+| Componente | Archivo | Función |
+|---|---|---|
+| Servicio de catálogo | `backend/app/Services/CatalogoSyncService.ts` | Empuja productos de MySQL a Supabase cada **15 s** (polling) |
+| Disparo inmediato | `backend/app/Http/Controllers/ProductoController.ts` | Llama `sincronizarCatalogoAhora()` tras crear/editar/eliminar/toggle un producto |
+| Arranque | `backend/bootstrap/app.ts` | Llama a `iniciarCatalogoSync()` tras `iniciarDeliverySync()` |
+| Migración | `Delivery_app/supabase_sql/05_catalogo_pos.sql` | Agrega `products.pos_id` (UNIQUE) + índice + `updated_at` |
+| Config | `backend/.env` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PUBLIC_BASE_URL` |
+
+### Mapeo de datos (MySQL → Supabase)
+
+| MySQL (`productos`) | Supabase (`products`) | Notas |
+|---|---|---|
+| `id` | `pos_id` | Llave de mapeo (upsert con `onConflict: 'pos_id'`) |
+| `nombre` | `nombre` | |
+| `descripcion` | `descripcion` | |
+| `precio` | `precio` | |
+| `categorias.nombre` | `categoria` | |
+| `imagen` | `imagen_url` | Se construye como `PUBLIC_BASE_URL` + `/uploads/productos/...` |
+| `activo AND disponible` | `estado` | Solo visible si ambos están en 1 |
+| — | `updated_at` | Fecha de la sincronización |
+
+### Comportamiento
+
+- **Polling cada 15 s**: consulta `productos` de MySQL (excluyendo la categoría **"Delivery"** para evitar duplicar los productos que el puente de pedidos crea automáticamente) y hace un **upsert idempotente** en Supabase (`onConflict: 'pos_id'`).
+- **Disparo inmediato**: al crear, actualizar, eliminar o cambiar el estado de un producto desde el POS admin, `ProductoController` llama `sincronizarCatalogoAhora()` para que el cambio llegue a la app en ≤15 s (o antes, con la siguiente ejecución del ciclo).
+- **Productos obsoletos**: si un producto desaparece de la consulta del POS (ej. se desactiva), el servicio lo marca con `estado = false` en Supabase (no lo borra).
+
+### Configuración
+
+1. **Ejecutar la migración** en el dashboard de Supabase → SQL Editor: `Delivery_app/supabase_sql/05_catalogo_pos.sql`.
+2. **Definir `PUBLIC_BASE_URL`** en `backend/.env` (URL del backend accesible desde donde corra la app, LAN o pública):
+   ```env
+   PUBLIC_BASE_URL=http://192.168.1.50:3006
+   ```
+3. **Reiniciar el backend** (`npm run dev` o `npm start`) y verificar el log:
+   ```
+   [CatalogoSync] Catálogo POS->Supabase activo (polling cada 15s)
+   ```
+4. **Probar**: crear/editar un producto en el POS admin y confirmar que aparece en la app de delivery en ≤15 s.
+
+---
+
 ## Notas y brechas conocidas
 
 - **Sin asignación automática de puesto**: los productos creados en la categoría "Delivery" no tienen `puesto_cocina_id`; asígnale un puesto (ej. Puesto 6 Apoyo) en el admin para que la cocina los reciba.
