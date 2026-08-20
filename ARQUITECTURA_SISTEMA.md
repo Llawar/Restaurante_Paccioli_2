@@ -24,7 +24,8 @@ flowchart LR
 
     subgraph RedB["RED DELIVERY MÓVIL  (Supabase)"]
         FL["Delivery_app<br/>(Flutter)"]
-        SB[(Supabase<br/>vkbfa...supabase.co)]
+        SB[(Supabase<br/>oywjtoventqgzcotqpny.supabase.co)]
+        PU["Puente Delivery→POS<br/>DeliverySyncService.ts"]
     end
 
     KH -->|REST| API
@@ -34,13 +35,15 @@ flowchart LR
     DI -->|REST + Socket| API
 
     FL --> SB
-
-    DB -. "sin integración" .- SB
+    SB <-->|polling 7s| PU
+    PU -->|INSERT + Socket.IO| API
+    DB <-->|catálogo 15s| SB
 ```
 
 **Puntos clave:**
 - Los 4 sistemas web comparten **la misma base MySQL** a través del **único** backend Express (`:3006`), que además sirve **Socket.IO** para el tiempo real.
-- La **Delivery_app (Flutter)** es **completamente independiente**: usa su **propia** cuenta de Supabase y **no se conecta** al backend Express ni al MySQL. Es un sistema aislado.
+- La **Delivery_app (Flutter)** usa su **propia** cuenta de Supabase, pero ya **no es aislada**: un **puente** (`DeliverySyncService.ts`) copia sus pedidos al MySQL y **emite** los mismos eventos Socket.IO (`kitchen:new_order`, `pedidos:changed`, `delivery:changed`) para que cocina, display y POS admin los vean en tiempo real.
+- El **catálogo es bidireccional-lógico**: `CatalogoSyncService.ts` empuja los productos del POS (MySQL) hacia la tabla `products` de Supabase cada 15 s (y de forma inmediata al crear/editar un producto en el admin). Los pedidos delivery se vinculan por `products.pos_id`.
 
 ---
 
@@ -115,8 +118,8 @@ sequenceDiagram
 `pendiente` → `asignado` → `en_camino` → `entregado` | `cancelado`
 > Al marcar el delivery como `entregado`, el backend marca el `pedidos` asociado como `entregado`.
 
-### Delivery móvil (`Delivery_app` — Supabase, independiente)
-Estados propios en la BD de Supabase amedida (`OrderStatus`: pendiente, aceptado, ... entregado), **sin vínculo** con los estados de MySQL de arriba.
+### Delivery móvil (`Delivery_app` — Supabase, integrada)
+Estados propios en la BD de Supabase (`pending`, `assigned`, `in_transit`, `delivered`, `cancelled`). El **puente** los traduce a los estados MySQL de `delivery`/`pedidos` (ver `INTEGRACION_DELIVERY_POS.md` → mapeo de estados).
 
 ---
 
@@ -156,13 +159,13 @@ Estados propios en la BD de Supabase amedida (`OrderStatus`: pendiente, aceptado
 - `delivery` (orden de reparto web),
 - `puestos_cocina` (6 puestos) y `categorias.puesto_cocina_id` (qué categoría prepara cada puesto; 1 categoría → 1 puesto).
 
-**Supabase (red delivery móvil)** — espejo funcional propio con su propia BD de pedidos/repartidores/productos, desvinculado de la anterior.
+**Supabase (red delivery móvil)** — espejo funcional propio con su propia BD de pedidos/repartidores/productos, conectado al POS vía el puente (`DeliverySyncService.ts` para pedidos/estados y `CatalogoSyncService.ts` para el catálogo por `products.pos_id`).
 
 ---
 
-## 8. Conexiones aparte / brechas detectadas
+## 1. Conexiones aparte / brechas detectadas
 
-1. **`Delivery_app` (Flutter) es un sistema aislado.** Usa Supabase propio y no comparte el pedido con el backend Express/MySQL de la red web. Ambos implementos "pedidos" y "delivery" por duplicado.
+1. ~~**`Delivery_app` (Flutter) es un sistema aislado.**~~ **RESUELTO (2026-08-20):** el puente `DeliverySyncService.ts` + `CatalogoSyncService.ts` conecta Supabase ↔ MySQL/Express. Los pedidos de la app aparecen en cocina, display y POS admin en tiempo real; el catálogo del POS se refleja en la app.
 2. **`updateEstado` del POS no emite Socket.IO** (`PedidoController.ts`): al cambiar un estado a `entregado` no notifica por evento (aunque el display igual recarga por polling).
 3. **`App_Cocina` usa `cocineroId: 1` fijo** (`App.tsx:68`): asume el primer usuario como cocinero; puede ser un bug con varios usuarios.
 4. **Endpoint público reutiliza `create` del POS** (`/pedidos/publico`): expone las mismas validaciones que el uso interno.

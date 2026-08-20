@@ -25,11 +25,14 @@
   - Pendientes
   - En Preparación
   - Listos para Recoger
+- **Pedidos de delivery** (app móvil) con distintivo 🛵 — llegan vía puente Supabase→POS
 - **Notificación sonora** (5 pitidos) cuando un pedido está listo
 - **Auto-ocultar** pedidos listos después de 20 segundos
 - **Reloj digital** en vivo con fecha actual
 - **Botón de silencio** para mutear la alerta sonora
 - **Actualización en tiempo real** vía REST + WebSocket
+
+> 💡 **IP automática:** esta app detecta la IP/hostname con el que se abrió la página; no hace falta configurar `.env` por dispositivo (solo si el backend está en otra IP).
 
 ## Instalación paso a paso
 
@@ -41,9 +44,9 @@ cd paccioli-pos/App_Display_Clientes
 # 2. Instalar dependencias
 npm install
 
-# 3. Configurar URL del Backend
+# 3. Configurar URL del Backend (opcional)
 cp .env.example .env
-# Editar .env con la IP del servidor backend
+# Editar .env solo si el backend está en otra IP distinta a la de la página
 # Ejemplo: VITE_API_URL=http://192.168.1.100:3006
 
 # 4. Iniciar

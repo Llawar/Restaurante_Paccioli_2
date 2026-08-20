@@ -27,8 +27,11 @@
   - `pendiente` → `en_preparacion` (Empezar)
   - `en_preparacion` → `listo` (Listo)
 - **Notificación sonora** al recibir nuevo pedido
+- **Pedidos de delivery** (app móvil) con distintivo 🛵 — llegan vía puente Supabase→POS y se asignan al puesto real de su producto
 - **Interfaz táctil** optimizada para tablets y celulares
 - **Actualización automática** vía WebSocket
+
+> 💡 **IP automática:** esta app detecta la IP/hostname con el que se abrió la página; no hace falta configurar `.env` por dispositivo (solo si el backend está en otra IP).
 
 ## Instalación paso a paso
 
@@ -40,9 +43,9 @@ cd paccioli-pos/App_Cocina
 # 2. Instalar dependencias
 npm install
 
-# 3. Configurar URL del Backend
+# 3. Configurar URL del Backend (opcional)
 cp .env.example .env
-# Editar .env con la IP del servidor backend
+# Editar .env solo si el backend está en otra IP distinta a la de la página
 # Ejemplo: VITE_API_URL=http://192.168.1.100:3006
 
 # 4. Iniciar

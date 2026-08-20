@@ -169,18 +169,38 @@ Con el servidor fijo en `192.168.1.100`, esto se configura **1 sola vez**:
 | Display | `App_Display_Clientes/.env` | `VITE_API_URL=http://192.168.1.100:3006` |
 | Admin (caja) | `frontend/src/services/api.js` | `http://192.168.1.100:3006/api` (hardcodeado) |
 
+### ✅ Actualizado (2026-08-20): IP auto-detectada — ya NO hace falta configurar por dispositivo
+- Los **4 frontends** ahora usan `window.location.hostname` (API y Socket.IO): conectan al backend usando la misma IP/hostname con el que se abrió la página. El `VITE_API_URL` en `.env` está **comentado/opcional**.
+- El **backend** auto-detecta su IP local (`os.networkInterfaces()`) para `PUBLIC_BASE_URL` (imágenes del catálogo hacia Supabase). `PUBLIC_BASE_URL` en `backend/.env` está comentada.
+- **Efecto**: si el servidor cambia de IP por DHCP, los dispositivos que abran la página por la IP nueva siguen conectando (ya no dependen de IP vieja en `.env`).
+
 Notas:
 - Kiosco usa sufijo `/api`; cocina/display NO.
 - Existen fallback hardcodeados en: `App_Cocina/src/App.tsx`, `App_Display_Clientes/src/App.tsx`, `Sistema_Pedidos_Automatico/src/api.ts` y `src/App.tsx`, `frontend/src/services/api.js`, `frontend/src/pages/Productos.jsx` (imágenes), `frontend/src/pages/Pedidos.jsx` (socket). Revisar al pasar a producción con IP fija.
 
 ---
 
-## 8. Próximos pasos / pendientes
+## 8. Integración Delivery (Supabase) ↔ POS — estado (2026-08-20)
+
+Ver detalle completo en [`INTEGRACION_DELIVERY_POS.md`](INTEGRACION_DELIVERY_POS.md).
+
+- **Puente de pedidos** (`DeliverySyncService.ts`): polling a Supabase cada 7 s → crea `pedidos`/`delivery` en MySQL y emite Socket.IO (`kitchen:new_order`, `pedidos:changed`, `delivery:changed`). La cocina y el display muestran los pedidos delivery con distintivo **🛵 Delivery**.
+- **Fix cocina**: los items de delivery se vinculan por `products.pos_id` → reutilizan el producto real del catálogo POS con su **categoría/puesto reales** (ya no caen en el fallback Puesto 6 / categoría "Delivery" sin puesto).
+- **Catálogo POS→Supabase** (`CatalogoSyncService.ts`): upsert cada 15 s (`onConflict: 'pos_id'`), disparo inmediato desde `ProductoController`, y desactivación de productos obsoletos. Migración `05_catalogo_pos.sql` (agrega `products.pos_id` + `updated_at`).
+- **Moneda**: la app de delivery usa **bolivianos (Bs)** en todas las pantallas (antes mostraba `$`).
+- **Checkout con ubicación obligatoria**: el pedido se bloquea si el cliente no provee coordenadas (necesarias para el repartidor). En Flutter Web por IP/HTTP la geolocalización puede estar bloqueada por el navegador.
+- **Imagen de inicio**: se reemplazó el logo de la app (splash/ícono) por un PNG real (`assets/images/iconico.png`, regenerado con `flutter_native_splash` + `flutter_launcher_icons`).
+
+---
+
+## 9. Próximos pasos / pendientes
 
 - [ ] **Inventario** (prioridad actual): cargar catálogo (categorías, productos, inventario/stock) para que kiosco/cocina/display tengan datos.
 - [x] **Fix bug 404**: crear ruta pública `POST /api/pedidos/publico` en el backend. ✅ (2026-08-12)
 - [x] **App Cocina con login y puesto fijo por cocinero** ✅ (2026-08-12). Pendiente: crear cuentas de cocinero reales + poner IP fija en `.env`.
 - [x] **Pantallas Categorías + Puestos de Cocina** (admin, grupo Configuración) ✅ (2026-08-12). Modelo `categorias.puesto_cocina_id`; tabla puente en desuso. Refactor: quitar ids hardcodeados de `Productos.jsx`.
+- [x] **Integración Delivery↔POS** (puente + catálogo + fix cocina) ✅ (2026-08-20). Ver sección 8.
+- [x] **IP auto-detectada en frontends y backend** ✅ (2026-08-20). Ver sección 7.
 - [ ] **Pagos reales kiosco**: validación de payload y registro de pagos. Ver `SEGUIMIENTO_PAGOS_KIOSCO.md`.
 - [ ] Prueba E2E completa: pedido kiosco → cocina (socket) → display → cambio de estados en cadena (requiere productos).
 - [ ] IP fija en Windows Server 2022 + actualizar `.env` de los 4 sistemas.

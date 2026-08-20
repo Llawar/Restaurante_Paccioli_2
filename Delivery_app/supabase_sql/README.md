@@ -7,9 +7,12 @@ Scripts para crear la base de datos y la seguridad en TU proyecto Supabase.
 1. **`01_tablas.sql`** — crea tablas, índices y la función `delete_user`.
 2. **`02_rls_enable.sql`** — activa Row Level Security en las 6 tablas.
 3. **`03_politicas.sql`** — crea funciones de rol y políticas de acceso.
+4. **`04_productos_catalogo.sql`** — (si existe) carga/añade el catálogo base de productos.
+5. **`05_catalogo_pos.sql`** — agrega `products.pos_id` (UNIQUE) + índice + `updated_at` para la **sincronización de catálogo desde el POS** (`CatalogoSyncService.ts`). Idempotente.
 
 > Ejecuta en ese orden. 2 puede ir antes que 1 (solo activa la protección);
 > 3 siempre después de 1 y 2 para que las tablas existan con RLS activo.
+> El 05 es opcional (solo necesario si usas el puente Delivery↔POS).
 
 ---
 

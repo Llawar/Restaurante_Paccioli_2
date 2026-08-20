@@ -86,6 +86,8 @@ ping 192.168.137.50   # comprobar la propia IP
 
 > La IP fija es clave: los 4 frontends apuntan a `http://192.168.137.50:3006`.
 > Si la IP cambia, todo deja de funcionar.
+>
+> ✅ **Actualizado (2026-08-20):** los 4 frontends ahora detectan la **IP/hostname con el que se abrió la página** (`window.location.hostname`) y el backend auto-detecta su IP para `PUBLIC_BASE_URL`. La IP fija sigue recomendada para estabilidad, pero **ya no es obligatorio** editar el `.env` de cada dispositivo: si la IP cambia, basta abrir la página por la IP nueva.
 
 ### Checklist
 

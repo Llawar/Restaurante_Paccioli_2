@@ -33,7 +33,7 @@
 
 1. En Supabase, ve a **SQL Editor**
 2. Haz click en "New Query"
-3. Copia y pega el siguiente SQL:
+3. Copia y pega el siguiente SQL (o mejor, ejecuta los scripts de `supabase_sql/` en orden, del `01` al `05`):
 
 ```sql
 -- Tabla de Usuarios
@@ -144,6 +144,8 @@ INSERT INTO products (nombre, descripcion, precio, categoria, stock) VALUES
 ('Pasta Carbonara', 'Pasta cremosa con jamón', 11.99, 'Pastas', 20),
 ('Refresco 2L', 'Refresco variado', 3.99, 'Bebidas', 100);
 ```
+
+> 💡 **Nota**: los precios de ejemplo están en la moneda del proyecto (**bolivianos, Bs**). En producción el catálogo se sincroniza desde el POS (ver `05_catalogo_pos.sql`), así que esta carga manual es solo para desarrollo.
 
 ## ¡Listo! 🎉
 

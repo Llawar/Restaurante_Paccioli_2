@@ -61,7 +61,8 @@ Conectar los pedidos que llegan por la **app de delivery (Flutter + Supabase)** 
 | `orders.metodo_pago` | `delivery.notas` | Se guarda como nota ("Metodo de pago: ...") |
 | `orders.total` | `pedidos.total` | |
 | — | `pedidos.tipo` | Siempre `'delivery'` |
-| `order_items[].nombre_producto` | `detalles_pedido.producto_id` | Producto se busca por nombre; si no existe se crea en la categoría **Delivery** |
+| `order_items[].producto_id` | `detalles_pedido.producto_id` | Se mapea por `products.pos_id` (catálogo POS→Supabase); si no existe, fallback por nombre y crea en categoría **Delivery** |
+| `order_items[].nombre_producto` | `detalles_pedido.producto_id` | Usado solo como fallback cuando no hay `pos_id` |
 | `order_items[].cantidad` | `detalles_pedido.cantidad` | |
 | `order_items[].precio_unitario` | `detalles_pedido.precio_unitario` | |
 | `orders.estado` | `delivery.estado` + `pedidos.estado` | Ver tabla de estados |
@@ -132,9 +133,9 @@ Al arrancar deberías ver el log:
 
 ## Cómo probar
 
-1. Abre la app de delivery (Flutter) y crea un pedido como cliente (rol `client`).
+1. Abre la app de delivery (Flutter) y crea un pedido como cliente (rol `client`). **Es obligatorio aceptar el permiso de ubicación** (sin coordenadas el pedido se bloquea).
 2. En un máximo de ~7 s, en el **POS admin** (`:5173` → Pedidos) debe aparecer un pedido de tipo **delivery**.
-3. En la **cocina** (`:5175`) deben aparecer los items asignados a sus puestos (si la categoría "Delivery" no tiene puesto asignado, quedan sin asignar hasta que le asignes un puesto en Admin → Puestos).
+3. En la **cocina** (`:5175`) deben aparecer los items asignados a sus puestos: ahora se mapea por `pos_id`, así los productos del catálogo POS conservan su **categoría y puesto reales** (el producto de la app reutiliza el del POS). En la tarjeta se muestra el distintivo **🛵 Delivery** (también en `App_Display_Clientes`).
 4. Avanza el estado en la app (repartidor acepta → in_transit → delivered) y verifica que en el POS el estado cambie en tiempo real.
 
 ---
@@ -175,8 +176,9 @@ Sincroniza el catálogo de productos del **POS (MySQL)** hacia la tabla `product
 ### Configuración
 
 1. **Ejecutar la migración** en el dashboard de Supabase → SQL Editor: `Delivery_app/supabase_sql/05_catalogo_pos.sql`.
-2. **Definir `PUBLIC_BASE_URL`** en `backend/.env` (URL del backend accesible desde donde corra la app, LAN o pública):
+2. **`PUBLIC_BASE_URL`**: el servicio **detecta automáticamente** la IP local del servidor (`os.networkInterfaces()`). Solo define `PUBLIC_BASE_URL` en `backend/.env` si necesitas forzar otra URL (p. ej. un dominio público o túnel):
    ```env
+   # Opcional: si no se define, se auto-detecta la IP local del equipo.
    PUBLIC_BASE_URL=http://192.168.1.50:3006
    ```
 3. **Reiniciar el backend** (`npm run dev` o `npm start`) y verificar el log:
@@ -189,7 +191,8 @@ Sincroniza el catálogo de productos del **POS (MySQL)** hacia la tabla `product
 
 ## Notas y brechas conocidas
 
-- **Sin asignación automática de puesto**: los productos creados en la categoría "Delivery" no tienen `puesto_cocina_id`; asígnale un puesto (ej. Puesto 6 Apoyo) en el admin para que la cocina los reciba.
+- **Productos de delivery con puesto real**: el puente mapea cada item por `products.pos_id` y reutiliza el producto del catálogo POS (que ya tiene `categorias.puesto_cocina_id`). Si el producto no está en el catálogo (sin `pos_id`), se crea en la categoría "Delivery"; en ese caso asígnale un puesto en Admin → Puestos para que la cocina lo reciba.
+- **Ubicación obligatoria en la app**: el checkout de la app exige coordenadas del cliente (el repartidor las necesita); sin ubicación (o en navegador sin permiso de geolocalización) el pedido no se envía.
 - **Clientes no creados en `clientes`**: el puente guarda nombre/teléfono solo en `delivery`, no crea filas en la tabla `clientes`. Se puede agregar después si se requiere.
 - **Una vía por ahora**: Supabase → MySQL. Los cambios hechos en el POS no se reflejan en la app (requeriría sincronización bidireccional).
 - **Polling, no Realtime**: se usa polling de 7 s por simplicidad y robustez. Migrar a Supabase Realtime sería una mejora futura para latencia <1s.

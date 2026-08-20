@@ -1,6 +1,6 @@
 # Restaurante Paccioli POS
 
-Sistema completo de **Punto de Venta (POS)** y **Gestión de Restaurante** para **Paccioli**. Compuesto por 4 módulos independientes que se comunican con un backend central en tiempo real.
+Sistema completo de **Punto de Venta (POS)** y **Gestión de Restaurante** para **Paccioli**. Compuesto por 4 módulos web que se comunican con un backend central en tiempo real, más una **app de delivery (Flutter + Supabase)** integrada por un puente.
 
 ## Requisitos previos (primera vez)
 
@@ -19,6 +19,9 @@ Sistema completo de **Punto de Venta (POS)** y **Gestión de Restaurante** para 
 | 2 | **App_Cocina** | Pantalla de cocina (KDS) para ver pedidos en tiempo real | React 19 + Vite + Socket.IO |
 | 3 | **App_Display_Clientes** | Monitor público de pedidos para clientes | React 18 + Vite + Socket.IO |
 | 4 | **Sistema_Pedidos_Automatico** | Kiosco de autoservicio para clientes | React 19 + Vite + Tailwind 4 |
+| 5 | **Delivery_app** | App móvil de pedidos y reparto a domicilio (clientes + repartidores) | Flutter + Supabase |
+
+> **Delivery_app ↔ POS**: la app móvil usa Supabase como backend propio, pero un **puente** en el backend Express (`DeliverySyncService.ts` + `CatalogoSyncService.ts`) la integra con el restaurante: los pedidos aparecen en cocina/display/admin en tiempo real y el catálogo del POS se sincroniza a la app (moneda en **Bs**). Ver [`INTEGRACION_DELIVERY_POS.md`](INTEGRACION_DELIVERY_POS.md).
 
 ## Arquitectura
 
@@ -47,7 +50,7 @@ Sistema completo de **Punto de Venta (POS)** y **Gestión de Restaurante** para 
 
 Todos los módulos se conectan al **mismo backend** mediante REST API + WebSocket (Socket.IO).
 
-> `IP_DEL_SERVIDOR` es la IP del equipo donde corre el backend. En cada dispositivo se define en el `.env` del frontend correspondiente (ver sección de variables de entorno).
+> `IP_DEL_SERVIDOR` es la IP del equipo donde corre el backend. Los frontends **detectan automáticamente** la IP/hostname con el que fueron abiertos (`window.location.hostname`), así que normalmente no necesitas configurar nada por dispositivo. Solo define `VITE_API_URL` en el `.env` si el backend está en otra PC/IP que no coincide con la de la página (ver sección de variables de entorno).
 
 ## Instalación paso a paso
 
@@ -135,9 +138,9 @@ Cada proyecto frontend **puede** leer la URL del backend desde un archivo `.env`
 VITE_API_URL=http://IP_DEL_SERVIDOR:3006
 ```
 
-> **Opcional:** `VITE_API_URL` es opcional en desarrollo. Si no se define, el frontend usa `http://localhost:3006` como respaldo. En producción se define con la IP del servidor para que el frontend hable con el backend desde cualquier dispositivo (ver `GUIA_CONFIGURACION_WINDOWS_SERVER.md`).
+> **Opcional:** `VITE_API_URL` es opcional. Si no se define, el frontend usa la **IP/hostname con el que se abrió la página** (`window.location.hostname`) contra el puerto del backend (y `http://localhost:3006` como respaldo en desarrollo local). De esta forma, si el servidor cambia de IP por DHCP, los dispositivos siguen conectando mientras abran la página por su IP/hostname actual. En producción con el backend en otra PC define la IP del servidor (ver `GUIA_CONFIGURACION_WINDOWS_SERVER.md`).
 
-- **Sistema_Principal_Administrador/backend** → `.env` (credenciales MySQL + JWT)
+- **Sistema_Principal_Administrador/backend** → `.env` (credenciales MySQL + JWT + Supabase para el puente)
 - **Sistema_Principal_Administrador/frontend** → `.env` (opcional: `VITE_API_URL`)
 - **App_Cocina** → `.env` (opcional: `VITE_API_URL`)
 - **App_Display_Clientes** → `.env` (opcional: `VITE_API_URL`)
@@ -149,7 +152,7 @@ Cada proyecto incluye un `.env.example` como plantilla. Copia y renombra a `.env
 cp .env.example .env
 ```
 
-Las imágenes de productos se sirven desde el backend en `/uploads` y se arman con la IP de `VITE_API_URL` (ya no están hardcodeadas a `localhost`).
+Las imágenes de productos se sirven desde el backend en `/uploads` y se arman con la IP de `VITE_API_URL` (ya no están hardcodeadas a `localhost`). Para la app de delivery, la URL pública de las imágenes la auto-detecta el backend (`PUBLIC_BASE_URL`, opcional en `.env`).
 
 ## Despliegue en Windows Server 2022
 

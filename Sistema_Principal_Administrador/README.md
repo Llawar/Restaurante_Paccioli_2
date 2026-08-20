@@ -19,6 +19,7 @@ Panel de administración completo para la gestión del restaurante. Incluye **ba
 - **Autenticación:** JWT + bcrypt
 - **Tiempo real:** Socket.IO
 - **Idioma:** TypeScript (estructura Laravel-style)
+- **Integración Delivery↔POS:** `DeliverySyncService.ts` (pedidos de la app móvil → MySQL + Socket.IO) y `CatalogoSyncService.ts` (catálogo POS → Supabase, 15 s). Ver `INTEGRACION_DELIVERY_POS.md`.
 
 ### Frontend
 - **Framework:** React 18

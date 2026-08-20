@@ -42,9 +42,9 @@ cd paccioli-pos/Sistema_Pedidos_Automatico
 # 2. Instalar dependencias
 npm install
 
-# 3. Configurar URL del Backend
+# 3. Configurar URL del Backend (opcional)
 cp .env.example .env
-# Editar .env con la IP del servidor backend
+# Editar .env solo si el backend está en otra IP distinta a la de la página
 # Ejemplo: VITE_API_URL=http://192.168.1.100:3006/api
 
 # 4. Iniciar
@@ -53,13 +53,8 @@ npm run dev
 
 ## Configuración del Backend
 
-Esta app se conecta al backend central del restaurante. La URL se define en `.env`:
+Esta app se conecta al backend central del restaurante. Detecta automáticamente la **IP/hostname con el que se abrió la página** (`window.location.hostname`); `VITE_API_URL` es opcional y solo se define si el backend está en otra IP:
 
-```env
-VITE_API_URL=http://localhost:3006/api
-```
-
-Si el backend está en otra PC de la red, usa su IP local:
 ```env
 VITE_API_URL=http://192.168.1.100:3006/api
 ```
