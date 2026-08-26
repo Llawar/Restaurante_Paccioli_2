@@ -35,7 +35,7 @@ declare global {
   var io: Server | undefined
 }
 
-export const startServer = async (): Promise<void> => {
+export const startServer = async (): Promise<void> => { 
   const isDbConnected = await testConnection()
 
   if (!isDbConnected) {

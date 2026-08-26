@@ -1,10 +1,8 @@
 -- Sistema de Administración para Restaurante - Esquema de Base de Datos
 -- Base de datos: restaurant_system_db
-
--- Crear base de datos
 CREATE DATABASE IF NOT EXISTS restaurant_system_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE restaurant_system_db;
 
+use restaurant_system_db;
 -- Tabla: usuarios
 CREATE TABLE usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -44,6 +42,7 @@ CREATE TABLE productos (
     requiere_inventario TINYINT(1) DEFAULT 0,
     unidad_medida VARCHAR(20) DEFAULT 'unidad',
     activo TINYINT(1) DEFAULT 1,
+    eliminado TINYINT(1) DEFAULT 0,  -- <-- Aquí se agregó la nueva columna
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id)
@@ -188,6 +187,19 @@ ON DUPLICATE KEY UPDATE
   rol = VALUES(rol),
   activo = VALUES(activo);
 
+-- Insertar los 6 puestos de cocina
+INSERT INTO puestos_cocina (id, nombre, descripcion, activo) VALUES
+(1, 'Puesto 1 - Carnes y Parrilla', 'Especializado en carnes rojas, pollo, parrilla', 1),
+(2, 'Puesto 2 - Pastas y Guarniciones', 'Pastas, arroces, papas y acompañamientos', 1),
+(3, 'Puesto 3 - Entradas y Ensaladas', 'Ensaladas, sopas, aperitivos fríos', 1),
+(4, 'Puesto 4 - Bebidas y Bar', 'Bebidas sin alcohol, jugos, café', 1),
+(5, 'Puesto 5 - Postres', 'Postres, dulces, helados', 1),
+(6, 'Puesto 6 - Especial y Apoyo', 'Platos especiales, apoyo a otros puestos', 1)
+ON DUPLICATE KEY UPDATE
+  nombre = VALUES(nombre),
+  descripcion = VALUES(descripcion),
+  activo = VALUES(activo);
+
 -- Insertar categorías de ejemplo (IDs fijos 1-5)
 INSERT INTO categorias (id, nombre, descripcion, icono, color, puesto_cocina_id, activo) VALUES
 (1, 'Entradas', 'Aperitivos y entradas', 'utensils', '#FF6B6B', 3, 1),
@@ -201,19 +213,6 @@ ON DUPLICATE KEY UPDATE
   icono = VALUES(icono),
   color = VALUES(color),
   puesto_cocina_id = VALUES(puesto_cocina_id),
-  activo = VALUES(activo);
-
--- Insertar los 6 puestos de cocina
-INSERT INTO puestos_cocina (id, nombre, descripcion, activo) VALUES
-(1, 'Puesto 1 - Carnes y Parrilla', 'Especializado en carnes rojas, pollo, parrilla', 1),
-(2, 'Puesto 2 - Pastas y Guarniciones', 'Pastas, arroces, papas y acompañamientos', 1),
-(3, 'Puesto 3 - Entradas y Ensaladas', 'Ensaladas, sopas, aperitivos fríos', 1),
-(4, 'Puesto 4 - Bebidas y Bar', 'Bebidas sin alcohol, jugos, café', 1),
-(5, 'Puesto 5 - Postres', 'Postres, dulces, helados', 1),
-(6, 'Puesto 6 - Especial y Apoyo', 'Platos especiales, apoyo a otros puestos', 1)
-ON DUPLICATE KEY UPDATE
-  nombre = VALUES(nombre),
-  descripcion = VALUES(descripcion),
   activo = VALUES(activo);
 
 -- Asignación de categorías a puestos (configurable según tu restaurante)

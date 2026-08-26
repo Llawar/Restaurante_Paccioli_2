@@ -7,7 +7,7 @@ export const getAll = async (_req: Request, res: Response): Promise<void> => {
       SELECT i.*, p.nombre as producto_nombre, p.unidad_medida
       FROM inventario i
       INNER JOIN productos p ON i.producto_id = p.id
-      WHERE p.activo = 1
+      WHERE p.activo = 0
       ORDER BY p.nombre ASC
     `
     const [rows] = await pool.execute(query)
@@ -59,7 +59,7 @@ export const getAlertas = async (_req: Request, res: Response): Promise<void> =>
       SELECT i.*, p.nombre as producto_nombre, p.unidad_medida
       FROM inventario i
       INNER JOIN productos p ON i.producto_id = p.id
-      WHERE p.activo = 1
+      WHERE p.activo = 0
         AND (
           i.cantidad <= i.stock_minimo
           OR i.cantidad = 0

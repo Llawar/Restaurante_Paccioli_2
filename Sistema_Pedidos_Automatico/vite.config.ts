@@ -16,8 +16,9 @@ export default defineConfig(({mode}) => {
       },
     },
     server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      host: '0.0.0.0',    // abrir a toda la red LAN
+      allowedHosts: ['restaurante-paccioli-server.duckdns.org'], // Dar acceso al subdominio de duck DNS
+      port: 5174,         // puerto fijo para el Kiosko
       hmr: process.env.DISABLE_HMR !== 'true',
     },
   };

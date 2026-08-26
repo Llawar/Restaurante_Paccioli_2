@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: '0.0.0.0',
+      allowedHosts: ['restaurante-paccioli-server.duckdns.org'], // Dar acceso al subdominio de duck DNS
     port: 5175
   }
 })

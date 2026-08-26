@@ -36,6 +36,7 @@ export const getAllAdmin = async (_req: Request, res: Response): Promise<void> =
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
       LEFT JOIN detalles_pedido dp ON dp.producto_id = p.id
+      WHERE p.eliminado = 0
       GROUP BY p.id
       ORDER BY p.nombre ASC
     `
@@ -64,7 +65,7 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
       SELECT p.*, c.nombre as categoria_nombre
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.id = ? AND p.activo = 1
+      WHERE p.id = ? AND p.eliminado = 0
     `
     const [rows] = await pool.execute(query, [id])
 
@@ -98,7 +99,7 @@ export const getByCategoria = async (req: Request, res: Response): Promise<void>
       SELECT p.*, c.nombre as categoria_nombre
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.categoria_id = ? AND p.activo = 1
+      WHERE p.categoria_id = ? AND p.eliminado = 0 AND p.activo = 1
       ORDER BY p.nombre ASC
     `
     const [rows] = await pool.execute(query, [categoriaId])
@@ -257,7 +258,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
 
-    const deleteQuery = 'UPDATE productos SET activo = 0, updated_at = NOW() WHERE id = ? AND activo = 1'
+    const deleteQuery = 'UPDATE productos SET eliminado = 1, updated_at = NOW() WHERE id = ? AND eliminado = 0'
     const [result] = await pool.execute(deleteQuery, [id])
 
     if ((result as any).affectedRows === 0) {

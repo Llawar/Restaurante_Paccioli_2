@@ -8,6 +8,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5176,
     strictPort: true,
+    allowedHosts: ['restaurante-paccioli-server.duckdns.org'], // Dar acceso al subdominio de duck DNS
     hmr: {
       host: 'localhost',
       protocol: 'ws'
