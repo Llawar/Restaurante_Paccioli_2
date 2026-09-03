@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import pool from '../../Providers/DatabaseProvider'
 import { sincronizarCatalogoAhora } from '../../Services/CatalogoSyncService'
+import { subirImagenAStorage } from '../../Services/StorageService'
 
 export const getAll = async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -130,7 +131,12 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       requiere_inventario = 0
     } = req.body
 
-    const imagen = req.file ? `/uploads/productos/${req.file.filename}` : null
+    let imagen = req.file ? `/uploads/productos/${req.file.filename}` : null
+    // Opción B: subir a Supabase Storage y guardar URL pública
+    if (req.file) {
+      const storageUrl = await subirImagenAStorage(req.file)
+      if (storageUrl) imagen = storageUrl
+    }
 
     if (!nombre || !precio || !categoria_id) {
       res.status(400).json({
@@ -198,7 +204,11 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       activo
     } = req.body
 
-    const imagen = req.file ? `/uploads/productos/${req.file.filename}` : null
+    let imagen = req.file ? `/uploads/productos/${req.file.filename}` : null
+    if (req.file) {
+      const storageUrl = await subirImagenAStorage(req.file)
+      if (storageUrl) imagen = storageUrl
+    }
 
     const updateQuery = `
       UPDATE productos

@@ -284,7 +284,6 @@ Diferencia: -4
 
 ```
 categorias          (id, nombre, descripcion)
-subcategorias       (id, categoria_id, nombre)
 unidades_medida     (id, nombre, abreviatura)
 productos           (id, codigo, nombre, subcategoria_id, unidad_id,
                      controla_vencimiento, stock_minimo, activo)

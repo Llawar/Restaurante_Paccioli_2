@@ -40,18 +40,21 @@ const initSupabase = (): void => {
 
 const obtenerProductosPos = async (): Promise<any[]> => {
   const [rows] = await pool.execute(`
-    SELECT p.id, p.nombre, p.descripcion, p.precio, p.imagen, p.activo, p.disponible,
+    SELECT p.id, p.nombre, p.descripcion, p.precio, p.imagen, p.activo, p.disponible, p.eliminado,
            c.nombre AS categoria_nombre
     FROM productos p
     LEFT JOIN categorias c ON p.categoria_id = c.id
-    WHERE c.nombre <> ? OR c.nombre IS NULL
+    WHERE (c.nombre <> ? OR c.nombre IS NULL)
     ORDER BY p.id ASC
   `, [CATEGORIA_DELIVERY])
   return rows as any[]
 }
 
 const construirImagenUrl = (imagen: string | null): string | null => {
-  if (!imagen || !PUBLIC_BASE_URL) return null
+  if (!imagen) return null
+  // Si ya es URL completa (Supabase Storage), usarla tal cual
+  if (imagen.startsWith('http://') || imagen.startsWith('https://')) return imagen
+  if (!PUBLIC_BASE_URL) return null
   return PUBLIC_BASE_URL.replace(/\/$/, '') + '/' + imagen.replace(/^\//, '')
 }
 
@@ -69,7 +72,8 @@ const sincronizarCatalogo = async (): Promise<void> => {
       precio: Number(p.precio) || 0,
       categoria: p.categoria_nombre || 'General',
       imagen_url: construirImagenUrl(p.imagen),
-      estado: Boolean(p.activo && p.disponible),
+      // Si eliminado=1, forzar estado false aunque activo sea 1
+      estado: Boolean(!p.eliminado && p.activo && p.disponible),
       updated_at: new Date().toISOString()
     }))
 

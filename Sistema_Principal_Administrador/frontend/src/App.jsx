@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard'
 import Inventario from './pages/Inventario'
 import Productos from './pages/Productos'
 import Usuarios from './pages/Usuarios'
+import ClientesDelivery from './pages/ClientesDelivery'
+import Caja from './pages/Caja'
 import Pedidos from './pages/Pedidos'
 import Delivery from './pages/Delivery'
 import Reportes from './pages/Reportes'
@@ -23,6 +25,8 @@ function AppRoutes() {
         <Route path="inventario" element={<Inventario key={location.key} />} />
         <Route path="productos" element={<Productos key={location.key} />} />
         <Route path="usuarios" element={<Usuarios key={location.key} />} />
+        <Route path="clientes-delivery" element={<ClientesDelivery key={location.key} />} />
+        <Route path="caja" element={<Caja key={location.key} />} />
         <Route path="pedidos" element={<Pedidos key={location.key} />} />
         <Route path="delivery" element={<Delivery key={location.key} />} />
         <Route path="reportes" element={<Reportes key={location.key} />} />

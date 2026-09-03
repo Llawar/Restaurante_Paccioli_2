@@ -37,21 +37,17 @@
 ## Instalación paso a paso
 
 ```bash
-# 1. Clonar (si no lo has hecho)
-git clone https://github.com/tu-usuario/paccioli-pos.git
-cd paccioli-pos/App_Display_Clientes
-
-# 2. Instalar dependencias
+cd App_Display_Clientes
 npm install
 
-# 3. Configurar URL del Backend (opcional)
+# Opcional: solo si backend en otra IP
 cp .env.example .env
-# Editar .env solo si el backend está en otra IP distinta a la de la página
-# Ejemplo: VITE_API_URL=http://192.168.1.100:3006
+# VITE_API_URL=http://IP_DEL_PC:3006
 
-# 4. Iniciar
 npm run dev
 ```
+
+**Puerto fijo:** `5176` (ver `package.json` script `dev: "vite --host --port 5176"`)
 
 ## Configuración del Backend
 
@@ -75,5 +71,5 @@ VITE_API_URL=http://192.168.1.100:3006
 
 | Servicio | Puerto |
 |----------|--------|
-| Dev server (esta app) | `5176` |
-| Backend API | `3006` |
+| **Esta app** | `5176` |
+| Backend Principal | `3006` |

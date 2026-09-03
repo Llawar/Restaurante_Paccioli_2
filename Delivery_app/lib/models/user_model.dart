@@ -60,12 +60,13 @@ class User {
   // Parsear rol desde string
   static UserRole _parseRole(String? role) {
     switch (role) {
-      case 'admin':
-        return UserRole.admin;
       case 'client':
         return UserRole.client;
       case 'delivery':
         return UserRole.delivery;
+      case 'admin':
+        // Rol admin ya no existe en Delivery_app, se mapea a client por compatibilidad
+        return UserRole.client;
       default:
         return UserRole.client;
     }

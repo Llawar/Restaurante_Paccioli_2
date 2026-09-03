@@ -8,7 +8,8 @@ import {
   Home,
   Truck,
   Clock,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import { pedidosApi } from '../services/pedidos.service';
 import socket from '../services/socket';
@@ -119,6 +120,8 @@ function Pedidos() {
   const [orders, setOrders] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [detalle, setDetalle] = useState(null);
 
   useEffect(() => {
     fetchOrders(true); // true = initial load
@@ -162,16 +165,18 @@ function Pedidos() {
       
       // Transformar datos de la API
       const formattedOrders = ordersData.map((o, index) => ({
+        rawId: o.id,
         id: `PED-${String(o.id).padStart(3, '0')}`,
-        client: o.cliente_nombre || 'Cliente',
+        client: o.cliente_nombre || (o.notas?.includes('Cliente:') ? o.notas.split('Cliente:')[1].split('|')[0].trim() : 'Cliente'),
         phone: o.cliente_telefono || '+53 5XXXXXXX',
         type: o.tipo === 'delivery' ? 'delivery' : 'mesa',
-        detail: o.mesa_id || '',
-        items: o.items || o.total_items || 0,
+        detail: o.numero_mesa || o.mesa_id || '',
+        items: o.total_items ?? o.cantidad_total ?? o.items ?? 0,
         total: parseFloat(o.total) || 0,
         status: o.estado || 'pendiente',
-        date: o.fecha ? new Date(o.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        time: o.fecha ? new Date(o.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--:--'
+        date: o.created_at ? new Date(o.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        time: o.created_at ? new Date(o.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--:--',
+        notas: o.notas
       }));
       
       setOrders(formattedOrders);
@@ -191,6 +196,11 @@ function Pedidos() {
     } catch (error) {
       console.error('Error actualizando estado:', error);
     }
+  };
+
+  const openDetalle = async (order) => {
+    setSelected(order); setDetalle(null);
+    try { const res = await pedidosApi.getById(order.rawId); setDetalle(res.data?.data) } catch {}
   };
 
   // Filtrar pedidos
@@ -377,7 +387,7 @@ function Pedidos() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      <ActionButton icon={Eye} text="Ver" variant="default" />
+                      <button onClick={() => openDetalle(order)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14}/> Ver</button>
                       {order.status !== 'entregado' && (
                         <ActionButton 
                           icon={ArrowRight} 
@@ -420,6 +430,29 @@ function Pedidos() {
           </div>
         </div>
       </div>
+
+      {selected && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={()=>setSelected(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+            <div className="p-6 border-b flex items-center justify-between">
+              <h3 className="font-bold text-lg">{selected.id} — {selected.client}</h3>
+              <button onClick={()=>setSelected(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X size={18}/></button>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-500">{selected.type === 'mesa' ? `Mesa ${selected.detail}` : 'Delivery'} · {selected.date} {selected.time} · <span className="capitalize">{selected.status}</span></p>
+              {selected.notas && <p className="text-sm bg-yellow-50 border border-yellow-100 rounded-lg p-3">{selected.notas}</p>}
+              {!detalle ? <p className="text-center text-gray-400 py-6 flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18}/> Cargando productos...</p> :
+                detalle.detalles?.length ?
+                <div className="space-y-2">
+                  {detalle.detalles.map((d,i)=><div key={i} className="flex justify-between bg-gray-50 rounded-lg px-4 py-3"><span className="font-medium text-sm">{d.cantidad}x {d.producto_nombre}</span><span className="font-bold text-sm">Bs {(d.cantidad*d.precio_unitario).toFixed(2)}</span></div>)}
+                  <div className="flex justify-between font-bold text-lg pt-3 border-t">Total<span className="text-primary">Bs {parseFloat(detalle.total).toFixed(2)}</span></div>
+                </div>
+                : <p className="text-center text-gray-400 py-4">Sin detalles</p>
+              }
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

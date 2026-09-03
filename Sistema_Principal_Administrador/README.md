@@ -14,12 +14,14 @@ Panel de administración completo para la gestión del restaurante. Incluye **ba
 ## Tecnologías
 
 ### Backend
-- **Runtime:** Node.js con Express
-- **Base de datos:** MySQL (con mysql2 + pool de conexiones)
-- **Autenticación:** JWT + bcrypt
-- **Tiempo real:** Socket.IO
-- **Idioma:** TypeScript (estructura Laravel-style)
-- **Integración Delivery↔POS:** `DeliverySyncService.ts` (pedidos de la app móvil → MySQL + Socket.IO) y `CatalogoSyncService.ts` (catálogo POS → Supabase, 15 s). Ver `INTEGRACION_DELIVERY_POS.md`.
+- **Runtime:** Node.js + Express 4
+- **Base de datos:** MySQL (mysql2/promise + pool)
+- **Autenticación:** JWT (`jsonwebtoken`) + bcrypt — **mismo `JWT_SECRET` que GastroStock** para SSO
+- **Tiempo real:** Socket.IO 4
+- **Idioma:** TypeScript 5 (arquitectura Laravel-style)
+- **Sync:** `DeliverySyncService.ts` (Supabase → MySQL, 7s) + `CatalogoSyncService.ts` (POS → Supabase, 15s). Ver `INTEGRACION_DELIVERY_POS.md`
+
+> ⚠️ **SSO con GastroStock:** Debes configurar el mismo valor en `JWT_SECRET` en ambos `.env` (3006 y 3007) para que el login compartido funcione.
 
 ### Frontend
 - **Framework:** React 18
@@ -56,38 +58,33 @@ mysql -u root -p < Sistema_Principal_Administrador/backend/database/schema.sql
 
 ```bash
 cd Sistema_Principal_Administrador/backend
-
-# Instalar dependencias
 npm install
-
-# Configurar variables de entorno
 cp .env.example .env
 
-# Editar .env con tus credenciales MySQL:
+# Editar .env:
 # DB_HOST=localhost
 # DB_USER=root
 # DB_PASSWORD=tu_contraseña
 # DB_NAME=restaurant_system_db
+# JWT_SECRET=tu_clave_secreta (¡mismo valor que GastroStock!)
+# PORT=3006
 
-# Iniciar servidor
 npm run dev
 ```
 
-El backend arrancará en `http://localhost:3006`.
+- Puerto: `http://localhost:3006`
+- Typecheck: `npm run typecheck`
 
 ### 3. Frontend Admin
 
 ```bash
 cd Sistema_Principal_Administrador/frontend
-
-# Instalar dependencias
 npm install
-
-# Iniciar
 npm run dev
 ```
 
-El frontend arrancará en `http://localhost:5173`.
+- Puerto: `http://localhost:5173` (fijo en `vite.config.js`)
+- Acceso LAN: `--host 0.0.0.0` ya incluido
 
 ## Estructura del Backend (Laravel-style)
 

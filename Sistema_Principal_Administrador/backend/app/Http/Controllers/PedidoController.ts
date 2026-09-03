@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import pool from '../../Providers/DatabaseProvider'
 import { asignarItemsAPuestos } from './CocinaController'
+import { encolarConsumosDePedido } from '../../Services/GastroSyncService'
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -10,11 +11,18 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
       SELECT p.*,
              u.nombre as usuario_nombre,
              c.nombre as cliente_nombre,
-             m.numero_mesa
+             c.telefono as cliente_telefono,
+             m.numero_mesa,
+             COALESCE(dc.total_items, 0) as total_items,
+             COALESCE(dc.cantidad_total, 0) as cantidad_total
       FROM pedidos p
       LEFT JOIN usuarios u ON p.usuario_id = u.id
       LEFT JOIN clientes c ON p.cliente_id = c.id
       LEFT JOIN mesas m ON p.mesa_id = m.id
+      LEFT JOIN (
+        SELECT pedido_id, COUNT(*) as total_items, SUM(cantidad) as cantidad_total
+        FROM detalles_pedido GROUP BY pedido_id
+      ) dc ON dc.pedido_id = p.id
       WHERE 1=1
     `
     const params: any[] = []
@@ -161,10 +169,21 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       ])
     }
 
+    // Capturar detalles para sync Gastro antes de commit
+    const detallesParaSync: { producto_id: number; cantidad: number }[] = items.map((it: any) => ({
+      producto_id: it.producto_id,
+      cantidad: it.cantidad
+    }))
+
     await connection.commit()
     connection.release()
 
     await asignarItemsAPuestos(pedidoId)
+
+    // Sync async a GastroStock (no bloquea respuesta, outbox garantiza reintento)
+    encolarConsumosDePedido(pedidoId, detallesParaSync, req.user?.id ?? null).catch((e: any) =>
+      console.error('[GastroSync] Error encolando pedido #' + pedidoId + ':', e.message)
+    )
 
     if (global.io) {
       global.io.emit('kitchen:new_order', { pedidoId, timestamp: new Date().toISOString() })

@@ -1,5 +1,6 @@
 -- Migration: Crear tabla de productos
-CREATE TABLE IF NOT EXISTS productos (
+
+CREATE TABLE productos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
@@ -10,6 +11,7 @@ CREATE TABLE IF NOT EXISTS productos (
     requiere_inventario TINYINT(1) DEFAULT 0,
     unidad_medida VARCHAR(20) DEFAULT 'unidad',
     activo TINYINT(1) DEFAULT 1,
+    eliminado TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id)

@@ -1,5 +1,5 @@
 // Enums para Roles
-enum UserRole { admin, client, delivery }
+enum UserRole { client, delivery }
 
 enum OrderStatus { pending, assigned, in_transit, delivered, cancelled }
 

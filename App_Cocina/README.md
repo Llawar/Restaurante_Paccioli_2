@@ -12,9 +12,9 @@
 
 ## Tecnologías
 
-- **Framework:** React 19
-- **Build:** Vite 6
-- **Estilos:** Tailwind CSS 4
+- **Framework:** React **19** (package.json: `react: ^19.0.0`)
+- **Build:** Vite **6** (`vite: ^6.0.5`)
+- **Estilos:** Tailwind CSS **4** (@tailwindcss/vite)
 - **Tiempo real:** Socket.IO Client
 - **Íconos:** Lucide React
 - **Idioma:** TypeScript
@@ -36,21 +36,17 @@
 ## Instalación paso a paso
 
 ```bash
-# 1. Clonar (si no lo has hecho)
-git clone https://github.com/tu-usuario/paccioli-pos.git
-cd paccioli-pos/App_Cocina
-
-# 2. Instalar dependencias
+cd App_Cocina
 npm install
 
-# 3. Configurar URL del Backend (opcional)
+# Opcional: si el backend no está en localhost
 cp .env.example .env
-# Editar .env solo si el backend está en otra IP distinta a la de la página
-# Ejemplo: VITE_API_URL=http://192.168.1.100:3006
+# VITE_API_URL=http://IP_DEL_PC:3006
 
-# 4. Iniciar
 npm run dev
 ```
+
+**Puerto fijo:** `5175` (definido en `package.json`: `"dev": "vite --host 0.0.0.0 --port 5175"`)
 
 ## Configuración del Backend
 
@@ -72,7 +68,7 @@ VITE_API_URL=http://192.168.1.100:3006
 
 ## Puertos
 
-| Servicio | Puerto |
-|----------|--------|
-| Dev server (esta app) | `5175` |
-| Backend API | `3006` |
+| Servicio | Puerto | Comando |
+|----------|--------|---------|
+| **Esta app** | `5175` | `npm run dev` |
+| Backend Principal | `3006` | En `Sistema_Principal_Administrador/backend` |

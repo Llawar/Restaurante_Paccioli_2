@@ -1,11 +1,9 @@
 import 'package:delivery/config/constants.dart';
 import 'package:delivery/config/supabase_config.dart';
-import 'package:delivery/providers/admin_provider.dart';
 import 'package:delivery/providers/auth_provider.dart';
 import 'package:delivery/providers/cart_provider.dart';
 import 'package:delivery/providers/delivery_provider.dart';
 import 'package:delivery/providers/user_provider.dart';
-import 'package:delivery/screens/admin/admin_home_screen.dart';
 import 'package:delivery/screens/auth/login_screen.dart';
 import 'package:delivery/screens/client/client_home_screen.dart';
 import 'package:delivery/screens/delivery/delivery_home_screen.dart';
@@ -31,11 +29,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
-        ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => DeliveryProvider()),
       ],
       child: MaterialApp(
-        title: 'Delivery Pro Admin',
+        title: 'Delivery App',
         debugShowCheckedModeBanner: false,
         theme: _buildProfessionalTheme(),
         home: Consumer<AuthProvider>(
@@ -46,9 +43,8 @@ class MyApp extends StatelessWidget {
             }
 
             // Si hay usuario, ir a la pantalla según su rol
+            // Nota: rol admin eliminado de Delivery_app (ahora en Sistema_Principal_Administrador)
             switch (authProvider.currentUser?.rol) {
-              case UserRole.admin:
-                return const AdminHomeScreen();
               case UserRole.client:
                 return const ClientHomeScreen();
               case UserRole.delivery:

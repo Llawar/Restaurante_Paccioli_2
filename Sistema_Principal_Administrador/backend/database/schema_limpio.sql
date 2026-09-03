@@ -182,15 +182,6 @@ CREATE TABLE detalles_pedido (
 -- Módulo de almacén: proveedores, compras, lotes, Kardex (PEPS),
 -- inventario físico, alertas y auditoría.
 
--- Tabla: subcategorias
-CREATE TABLE subcategorias (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    categoria_id INT NOT NULL,
-    nombre VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
-);
-
 -- Tabla: unidades_medida
 CREATE TABLE unidades_medida (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: rgb(var(--c-bg) / 1);
+    color: rgb(var(--c-gray-900) / 1);
+  }
+}
+
+/* ===== Temas de apariencia (gourmet) =====
+   Los valores son tripletas RGB para que funcionen los
+   modificadores de opacidad de Tailwind (p.ej. bg-primary/10).
+
+   "white" apunta a --c-surface (fondo de paneles/tarjetas) y la
+   paleta "gray" a --c-gray-* (textos, bordes, fondos secundarios).
+   Así TODO el layout (paneles, tablas, modales, inputs, texto)
+   cambia con el tema, no solo el acento y el menú. */
+
+/* ---------- Burdeos (Vino) — crema cálido ---------- */
+:root,
+[data-theme="burdeos"] {
+  --c-primary: 139 30 45;
+  --c-primary-dark: 111 21 32;
+  --c-primary-light: 166 58 74;
+
+  --c-bg: 250 246 240;
+  --c-surface: 255 255 255;
+  --c-surface-muted: 245 241 234;
+
+  --c-gray-50: 250 247 242;
+  --c-gray-100: 243 240 234;
+  --c-gray-200: 231 226 219;
+  --c-gray-300: 211 204 195;
+  --c-gray-400: 156 163 175;
+  --c-gray-500: 107 114 128;
+  --c-gray-600: 75 78 84;
+  --c-gray-700: 55 57 60;
+  --c-gray-800: 35 38 42;
+  --c-gray-900: 24 25 27;
+
+  --c-sidebar: 40 18 22;
+  --c-sidebar-dark: 26 10 13;
+  --c-sidebar-light: 66 34 40;
+
+  --c-login-a: 61 10 18;
+  --c-login-b: 139 30 45;
+  --c-login-c: 61 10 18;
+}
+
+/* ---------- Esmeralda (Orgánico) — verde pálido ---------- */
+[data-theme="esmeralda"] {
+  --c-primary: 15 118 110;
+  --c-primary-dark: 6 95 70;
+  --c-primary-light: 20 184 166;
+
+  --c-bg: 248 250 246;
+  --c-surface: 255 255 255;
+  --c-surface-muted: 244 247 240;
+
+  --c-gray-50: 250 250 248;
+  --c-gray-100: 243 246 241;
+  --c-gray-200: 231 236 229;
+  --c-gray-300: 211 218 208;
+  --c-gray-400: 156 163 175;
+  --c-gray-500: 107 114 128;
+  --c-gray-600: 75 78 84;
+  --c-gray-700: 55 57 60;
+  --c-gray-800: 35 38 42;
+  --c-gray-900: 24 25 27;
+
+  --c-sidebar: 16 36 32;
+  --c-sidebar-dark: 9 24 21;
+  --c-sidebar-light: 32 60 54;
+
+  --c-login-a: 5 46 32;
+  --c-login-b: 15 118 110;
+  --c-login-c: 5 46 32;
+}
+
+/* ---------- Oro (Lujo) — marfil cálido ---------- */
+[data-theme="oro"] {
+  --c-primary: 148 78 12;
+  --c-primary-dark: 124 58 8;
+  --c-primary-light: 202 138 4;
+
+  --c-bg: 253 250 244;
+  --c-surface: 255 255 255;
+  --c-surface-muted: 249 243 232;
+
+  --c-gray-50: 251 247 240;
+  --c-gray-100: 244 239 229;
+  --c-gray-200: 233 226 212;
+  --c-gray-300: 213 204 187;
+  --c-gray-400: 156 163 175;
+  --c-gray-500: 107 114 128;
+  --c-gray-600: 75 78 84;
+  --c-gray-700: 55 57 60;
+  --c-gray-800: 35 38 42;
+  --c-gray-900: 24 25 27;
+
+  --c-sidebar: 43 32 16;
+  --c-sidebar-dark: 28 20 9;
+  --c-sidebar-light: 70 54 30;
+
+  --c-login-a: 48 32 8;
+  --c-login-b: 148 78 12;
+  --c-login-c: 48 32 8;
+}
+
+/* ---------- Grafito (Premium) — modo oscuro ---------- */
+[data-theme="grafito"] {
+  --c-primary: 96 106 122;
+  --c-primary-dark: 71 80 94;
+  --c-primary-light: 128 138 154;
+
+  --c-bg: 17 19 24;
+  --c-surface: 30 33 40;
+  --c-surface-muted: 37 41 49;
+
+  --c-gray-50: 30 33 39;
+  --c-gray-100: 36 40 47;
+  --c-gray-200: 43 47 54;
+  --c-gray-300: 56 60 70;
+  --c-gray-400: 82 90 104;
+  --c-gray-500: 110 120 135;
+  --c-gray-600: 148 163 184;
+  --c-gray-700: 182 195 210;
+  --c-gray-800: 208 217 226;
+  --c-gray-900: 226 232 240;
+
+  --c-sidebar: 23 26 32;
+  --c-sidebar-dark: 14 16 21;
+  --c-sidebar-light: 42 47 56;
+
+  --c-login-a: 14 16 21;
+  --c-login-b: 55 65 81;
+  --c-login-c: 14 16 21;
+}
+
+@layer components {
+  .gradient-sidebar {
+    background: linear-gradient(180deg, rgb(var(--c-sidebar) / 1) 0%, rgb(var(--c-sidebar-dark) / 1) 100%);
+  }
+
+  .gradient-login {
+    background: linear-gradient(135deg, rgb(var(--c-login-a) / 1) 0%, rgb(var(--c-login-b) / 1) 50%, rgb(var(--c-login-c) / 1) 100%);
+  }
+
+  .card-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}

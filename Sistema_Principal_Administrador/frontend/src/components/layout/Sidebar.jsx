@@ -5,6 +5,8 @@ import {
   UtensilsCrossed, 
   Package, 
   ShoppingCart, 
+  ClipboardList,
+  Store,
   Truck, 
   Users, 
   FileText,
@@ -22,9 +24,11 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/productos', label: 'Productos', icon: UtensilsCrossed },
   { path: '/inventario', label: 'Inventario', icon: Package },
-  { path: '/pedidos', label: 'Pedidos', icon: ShoppingCart },
+  { path: '/caja', label: 'Caja', icon: Store },
+  { path: '/pedidos', label: 'Pedidos', icon: ClipboardList },
   { path: '/delivery', label: 'Delivery', icon: Truck },
   { path: '/usuarios', label: 'Usuarios', icon: Users },
+  { path: '/clientes-delivery', label: 'Clientes Delivery', icon: Users },
   { path: '/reportes', label: 'Reportes', icon: FileText },
 ];
 

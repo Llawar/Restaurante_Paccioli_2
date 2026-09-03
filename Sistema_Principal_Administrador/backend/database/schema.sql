@@ -226,15 +226,6 @@ ON DUPLICATE KEY UPDATE
 -- Módulo de almacén: proveedores, compras, lotes, Kardex (PEPS),
 -- inventario físico, alertas y auditoría.
 
--- Tabla: subcategorias
-CREATE TABLE subcategorias (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    categoria_id INT NOT NULL,
-    nombre VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
-);
-
 -- Tabla: unidades_medida
 CREATE TABLE unidades_medida (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -443,23 +434,6 @@ INSERT INTO ubicaciones (id, nombre, tipo) VALUES
 ON DUPLICATE KEY UPDATE
   nombre = VALUES(nombre),
   tipo = VALUES(tipo);
-
--- Subcategorías de productos
-INSERT INTO subcategorias (id, categoria_id, nombre) VALUES
--- Platos Principales (categoría 2)
-(1, 2, 'Hamburguesas'),
-(2, 2, 'Pizzas'),
-(3, 2, 'Ensaladas'),
--- Bebidas (categoría 3)
-(4, 3, 'Refrescos'),
-(5, 3, 'Jugos'),
-(6, 3, 'Café'),
--- Postres (categoría 4)
-(7, 4, 'Tartas'),
-(8, 4, 'Helados')
-ON DUPLICATE KEY UPDATE
-  categoria_id = VALUES(categoria_id),
-  nombre = VALUES(nombre);
 
 -- La carta de productos (productos, inventario y movimientos_inventario) se
 -- carga desde el panel de administración; no se siembra para evitar datos por defecto.

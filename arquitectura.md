@@ -21,7 +21,7 @@
 | **Admin** | 5173 | Sí (admin, cajero) | Cajero + administrador |
 | **App_Cocina** | 5175 | Sí (por puesto de cocina) | Cada cocinero con su propio login |
 | **Display** | 5176 | No (público) | Clientes viendo pantalla |
-| **Kiosco** | 3000 | No (público) | Clientes autoservicio |
+| **Kiosco** | 5174 | No (público) | Clientes autoservicio |
 | **Delivery** | (app nativa Android) | Sí (admin_delivery, repartidor, cliente) | Repartidores y clientes |
 
 ## Roles por módulo

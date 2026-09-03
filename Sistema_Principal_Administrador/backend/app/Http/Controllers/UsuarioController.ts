@@ -221,10 +221,11 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params
 
-    const updateQuery = 'UPDATE usuarios SET activo = 0, updated_at = NOW() WHERE id = ? AND activo = 1'
-    const [result] = await pool.execute(updateQuery, [id])
+    // Verificar si el usuario existe primero
+    const [existing] = await pool.execute('SELECT id, activo FROM usuarios WHERE id = ?', [id])
+    const user = (existing as any[])[0]
 
-    if ((result as any).affectedRows === 0) {
+    if (!user) {
       res.status(404).json({
         success: false,
         message: 'Usuario no encontrado'
@@ -232,9 +233,28 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
       return
     }
 
+    // Si ya está inactivo, informar pero no error
+    if (user.activo === 0) {
+      res.json({
+        success: true,
+        message: 'El usuario ya se encuentra inactivo',
+        data: { id: user.id, activo: 0 }
+      })
+      return
+    }
+
+    // Desactivar (soft delete)
+    const updateQuery = 'UPDATE usuarios SET activo = 0, updated_at = NOW() WHERE id = ?'
+    await pool.execute(updateQuery, [id])
+
+    if (global.io) {
+      global.io.emit('usuarios:changed', { action: 'delete', userId: id })
+    }
+
     res.json({
       success: true,
-      message: 'Usuario desactivado correctamente'
+      message: 'Usuario desactivado correctamente',
+      data: { id, activo: 0 }
     })
   } catch (error: any) {
     console.error('Error al eliminar usuario:', error)
