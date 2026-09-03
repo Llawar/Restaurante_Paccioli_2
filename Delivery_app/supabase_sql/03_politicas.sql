@@ -49,7 +49,7 @@ create policy "users_update_admin" on public.users
   with check (public.is_admin());
 
 -- ==================================================
-   CLIENT_PROFILES
+   -- CLIENT_PROFILES
 -- ==================================================
 
 drop policy if exists "client_profiles_insert_self" on public.client_profiles;
@@ -66,7 +66,7 @@ create policy "client_profiles_update_self" on public.client_profiles
   with check (user_id = auth.uid());
 
 -- ==================================================
-   DELIVERY_PROFILES
+  -- DELIVERY_PROFILES
 -- ==================================================
 
 drop policy if exists "delivery_profiles_insert_self" on public.delivery_profiles;
@@ -92,7 +92,7 @@ create policy "delivery_profiles_update_admin" on public.delivery_profiles
   with check (public.is_admin());
 
 -- ==================================================
-   PRODUCTS
+   -- PRODUCTS
 -- ==================================================
 
 drop policy if exists "products_select_all" on public.products;
@@ -113,7 +113,7 @@ create policy "products_delete_admin" on public.products
   for delete using (public.is_admin());
 
 -- ==================================================
-   ORDERS
+   -- ORDERS
 -- ==================================================
 
 -- Crear pedido: el cliente es dueño de su pedido
@@ -147,7 +147,7 @@ create policy "orders_update" on public.orders
   );
 
 -- ==================================================
-   ORDER_ITEMS
+   -- ORDER_ITEMS
 -- ==================================================
 
 drop policy if exists "order_items_select" on public.order_items;

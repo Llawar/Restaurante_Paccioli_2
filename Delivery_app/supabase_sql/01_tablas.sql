@@ -57,7 +57,7 @@ create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   cliente_id uuid not null references public.users(id),
   repartidor_id uuid references public.users(id),
-  estado text check (estado in ('pending','assigned','in_transit','delivered','cancelled')) default 'pending',
+  estado text check (estado in ('pending','reserved','ready_for_pickup','assigned','in_transit','delivered','cancelled')) default 'pending',
   direccion_entrega text not null,
   metodo_pago text default 'Efectivo',          -- leído por Order.fromJson
   latitud float,

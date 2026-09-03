@@ -19,12 +19,22 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _paymentFormKey = GlobalKey<FormState>();
   final _cardHolderController = TextEditingController();
   final _cardNumberController = TextEditingController();
   final _cardExpiryController = TextEditingController();
   final _cardCvvController = TextEditingController();
   String _selectedPaymentMethod = 'Efectivo';
+  String _selectedReservationPaymentMethod = 'Tarjeta';
+  String _selectedSection = 'orders';
   bool _isProcessing = false;
+
+  List<String> _paymentMethodsFor({required bool isReservation}) {
+    if (isReservation) {
+      return const ['Tarjeta', 'QR'];
+    }
+    return const ['Efectivo', 'Tarjeta', 'QR'];
+  }
 
   @override
   void dispose() {
@@ -44,7 +54,9 @@ class _CartScreenState extends State<CartScreen> {
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('El servicio de ubicación está desactivado')),
+            const SnackBar(
+              content: Text('El servicio de ubicación está desactivado'),
+            ),
           );
         }
         return null;
@@ -66,7 +78,9 @@ class _CartScreenState extends State<CartScreen> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permisos de ubicación denegados permanentemente')),
+            const SnackBar(
+              content: Text('Permisos de ubicación denegados permanentemente'),
+            ),
           );
         }
         return null;
@@ -79,7 +93,11 @@ class _CartScreenState extends State<CartScreen> {
       } on TimeoutException {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se pudo obtener tu ubicación a tiempo. Intenta de nuevo.')),
+            const SnackBar(
+              content: Text(
+                'No se pudo obtener tu ubicación a tiempo. Intenta de nuevo.',
+              ),
+            ),
           );
         }
         return null;
@@ -94,39 +112,43 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  Future<void> _checkout() async {
+  Future<void> _checkoutOrder() async {
     if (_formKey.currentState!.validate()) {
+      if (_paymentFormKey.currentState != null &&
+          !_paymentFormKey.currentState!.validate()) {
+        return;
+      }
       if (_selectedPaymentMethod == 'Tarjeta') {
-        if (_cardNumberController.text.length < 16 || 
-            _cardExpiryController.text.isEmpty || 
+        if (_cardNumberController.text.length < 16 ||
+            _cardExpiryController.text.isEmpty ||
             _cardCvvController.text.length != 3) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Por favor, completa los datos de la tarjeta')),
+            const SnackBar(
+              content: Text('Por favor, completa los datos de la tarjeta'),
+            ),
           );
           return;
         }
       }
-      setState(() {
-        _isProcessing = true;
-      });
-  
+
+      setState(() => _isProcessing = true);
+
       final cartProvider = context.read<CartProvider>();
       final authProvider = context.read<AuthProvider>();
       final userProvider = context.read<UserProvider>();
- 
+
       Position? position = await _getCurrentLocation();
       double lat = position?.latitude ?? 0.0;
       double lng = position?.longitude ?? 0.0;
 
-      // La ubicación es obligatoria: sin coordenadas el repartidor no sabría a dónde llevar el pedido.
       if (position == null || (lat == 0.0 && lng == 0.0)) {
-        setState(() {
-          _isProcessing = false;
-        });
+        setState(() => _isProcessing = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Necesitamos tu ubicación para el envío. Activa los permisos y vuelve a intentar.'),
+              content: Text(
+                'Necesitamos tu ubicación para el envío. Activa los permisos y vuelve a intentar.',
+              ),
               backgroundColor: Colors.orange,
             ),
           );
@@ -147,19 +169,18 @@ class _CartScreenState extends State<CartScreen> {
       } catch (e) {
         debugPrint('Error reverse geocoding: $e');
       }
-  
-       final success = await cartProvider.checkout(
+
+      final success = await cartProvider.checkout(
         authProvider.currentUser!.id,
         address,
         _selectedPaymentMethod,
         lat,
         lng,
+        isReservation: false,
       );
- 
-      setState(() {
-        _isProcessing = false;
-      });
- 
+
+      setState(() => _isProcessing = false);
+
       if (mounted) {
         if (success) {
           await userProvider.fetchClientOrders(authProvider.currentUser!.id);
@@ -174,6 +195,66 @@ class _CartScreenState extends State<CartScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Error al crear el pedido'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _checkoutReservation() async {
+    if (_formKey.currentState!.validate()) {
+      if (_paymentFormKey.currentState != null &&
+          !_paymentFormKey.currentState!.validate()) {
+        return;
+      }
+      if (_selectedReservationPaymentMethod == 'Tarjeta') {
+        if (_cardNumberController.text.length < 16 ||
+            _cardExpiryController.text.isEmpty ||
+            _cardCvvController.text.length != 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Por favor, completa los datos de la tarjeta'),
+            ),
+          );
+          return;
+        }
+      }
+
+      setState(() => _isProcessing = true);
+
+      final cartProvider = context.read<CartProvider>();
+      final authProvider = context.read<AuthProvider>();
+      final userProvider = context.read<UserProvider>();
+
+      final success = await cartProvider.checkout(
+        authProvider.currentUser!.id,
+        'Reserva en local',
+        _selectedReservationPaymentMethod,
+        0.0,
+        0.0,
+        isReservation: true,
+      );
+
+      setState(() => _isProcessing = false);
+
+      if (mounted) {
+        if (success) {
+          await userProvider.fetchClientOrders(authProvider.currentUser!.id);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '¡Reserva confirmada! Tu pedido estará listo al llegar.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No hay productos en reserva para confirmar'),
               backgroundColor: Colors.red,
             ),
           );
@@ -198,7 +279,9 @@ class _CartScreenState extends State<CartScreen> {
               controller: _cardHolderController,
               hintText: 'Nombre completo',
               prefixIcon: const Icon(Icons.person),
-              validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
+              validator:
+                  (value) =>
+                      (value == null || value.isEmpty) ? 'Requerido' : null,
             ),
             const SizedBox(height: 12),
             CustomTextField(
@@ -207,7 +290,11 @@ class _CartScreenState extends State<CartScreen> {
               hintText: '0000 0000 0000 0000',
               prefixIcon: const Icon(Icons.credit_card),
               keyboardType: TextInputType.number,
-              validator: (value) => (value == null || value.length < 16) ? 'Número inválido' : null,
+              validator:
+                  (value) =>
+                      (value == null || value.length < 16)
+                          ? 'Número inválido'
+                          : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -219,7 +306,11 @@ class _CartScreenState extends State<CartScreen> {
                     hintText: 'MM/AA',
                     prefixIcon: const Icon(Icons.calendar_today),
                     keyboardType: TextInputType.number,
-                    validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
+                    validator:
+                        (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Requerido'
+                                : null,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -230,7 +321,11 @@ class _CartScreenState extends State<CartScreen> {
                     hintText: '123',
                     prefixIcon: const Icon(Icons.lock),
                     keyboardType: TextInputType.number,
-                    validator: (value) => (value == null || value.length != 3) ? 'Inválido' : null,
+                    validator:
+                        (value) =>
+                            (value == null || value.length != 3)
+                                ? 'Inválido'
+                                : null,
                   ),
                 ),
               ],
@@ -258,7 +353,9 @@ class _CartScreenState extends State<CartScreen> {
                   'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=PAGO_DELIVERY_PRO',
                   width: 150,
                   height: 150,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.qr_code, size: 150),
+                  errorBuilder:
+                      (context, error, stackTrace) =>
+                          const Icon(Icons.qr_code, size: 150),
                 ),
               ),
             ),
@@ -295,6 +392,186 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  Widget _buildReservationPaymentDetails() {
+    switch (_selectedReservationPaymentMethod) {
+      case 'Tarjeta':
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Datos de la tarjeta para reserva',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            CustomTextField(
+              label: 'Nombre del Titular',
+              controller: _cardHolderController,
+              hintText: 'Nombre completo',
+              prefixIcon: const Icon(Icons.person),
+              validator:
+                  (value) =>
+                      (value == null || value.isEmpty) ? 'Requerido' : null,
+            ),
+            const SizedBox(height: 12),
+            CustomTextField(
+              label: 'Número de Tarjeta',
+              controller: _cardNumberController,
+              hintText: '0000 0000 0000 0000',
+              prefixIcon: const Icon(Icons.credit_card),
+              keyboardType: TextInputType.number,
+              validator:
+                  (value) =>
+                      (value == null || value.length < 16)
+                          ? 'Número inválido'
+                          : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    label: 'MM/AA',
+                    controller: _cardExpiryController,
+                    hintText: 'MM/AA',
+                    prefixIcon: const Icon(Icons.calendar_today),
+                    keyboardType: TextInputType.number,
+                    validator:
+                        (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Requerido'
+                                : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CustomTextField(
+                    label: 'CVV',
+                    controller: _cardCvvController,
+                    hintText: '123',
+                    prefixIcon: const Icon(Icons.lock),
+                    keyboardType: TextInputType.number,
+                    validator:
+                        (value) =>
+                            (value == null || value.length != 3)
+                                ? 'Inválido'
+                                : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      case 'QR':
+      default:
+        return Column(
+          children: [
+            const Text(
+              'Escanea el código QR para confirmar tu reserva',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Image.network(
+                  'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=RESERVA_DELIVERY_PRO',
+                  width: 150,
+                  height: 150,
+                  errorBuilder:
+                      (context, error, stackTrace) =>
+                          const Icon(Icons.qr_code, size: 150),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Usa tu banca móvil para escanear la reserva',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        );
+    }
+  }
+
+  Widget _buildOrderPaymentStep() {
+    if (_selectedPaymentMethod == 'Efectivo') {
+      return _buildPaymentDetails();
+    }
+
+    return _buildNextPaymentButton(
+      onPressed: () => _showPaymentConfirmationDialog(isReservation: false),
+    );
+  }
+
+  Widget _buildReservationPaymentStep() {
+    return _buildNextPaymentButton(
+      onPressed: () => _showPaymentConfirmationDialog(isReservation: true),
+    );
+  }
+
+  Widget _buildNextPaymentButton({required VoidCallback onPressed}) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.arrow_forward),
+        label: const Text('Siguiente'),
+      ),
+    );
+  }
+
+  Future<void> _showPaymentConfirmationDialog({
+    required bool isReservation,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(isReservation ? 'Confirmar Reserva' : 'Confirmar Pedido'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _paymentFormKey,
+              child:
+                  isReservation
+                      ? _buildReservationPaymentDetails()
+                      : _buildPaymentDetails(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Volver'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (!(_paymentFormKey.currentState?.validate() ?? true)) {
+                  return;
+                }
+                if (isReservation) {
+                  Navigator.pop(dialogContext);
+                  await _checkoutReservation();
+                } else {
+                  Navigator.pop(dialogContext);
+                  await _checkoutOrder();
+                }
+              },
+              child: Text(
+                isReservation ? 'Confirmar Reserva' : 'Confirmar Pedido',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -326,141 +603,305 @@ class _CartScreenState extends State<CartScreen> {
             );
           }
 
+          final showOrders = cartProvider.orderItems.isNotEmpty;
+          final showReservations = cartProvider.reservationItems.isNotEmpty;
+          final activeSection =
+              _selectedSection == 'orders' && showOrders || !showReservations
+                  ? 'orders'
+                  : 'reservations';
+
           return SingleChildScrollView(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: List.generate(
-                      cartProvider.items.length,
-                      (index) => CartItemWidget(item: cartProvider.items[index]),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSectionTab(
+                            title: 'Pedidos',
+                            count: cartProvider.orderItems.length,
+                            total: cartProvider.orderTotal,
+                            isSelected: activeSection == 'orders',
+                            color: Colors.orange,
+                            onTap:
+                                showOrders
+                                    ? () => setState(
+                                      () => _selectedSection = 'orders',
+                                    )
+                                    : null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildSectionTab(
+                            title: 'Reservas',
+                            count: cartProvider.reservationItems.length,
+                            total: cartProvider.reservationTotal,
+                            isSelected: activeSection == 'reservations',
+                            color: Colors.green,
+                            onTap:
+                                showReservations
+                                    ? () => setState(
+                                      () => _selectedSection = 'reservations',
+                                    )
+                                    : null,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    const SizedBox(height: 20),
+                    if (activeSection == 'orders' && showOrders) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(
+                              Icons.shopping_bag_outlined,
+                              color: Colors.orange,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Pedido',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...cartProvider.orderItems.map(
+                        (item) =>
+                            CartItemWidget(item: item, isReservation: false),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Subtotal pedido:'),
+                          Text(
+                            'Bs ${cartProvider.orderTotal.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       const Text(
-                        'Resumen del Pedido',
+                        'Método de Pago del Pedido',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Subtotal:'),
-                          Text(
-                            'Bs ${cartProvider.total.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                      DropdownButtonFormField<String>(
+                        value: _selectedPaymentMethod,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Envío:'),
-                          const Text(
-                            'Bs 0.00',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          prefixIcon: const Icon(Icons.payment),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'Bs ${cartProvider.total.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                         const Text(
-                           'Método de Pago',
-                           style: TextStyle(
-                             fontSize: 14,
-                             fontWeight: FontWeight.bold,
-                           ),
-                         ),
-                         const SizedBox(height: 12),
-                         DropdownButtonFormField<String>(
-                          value: _selectedPaymentMethod,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            prefixIcon: const Icon(Icons.payment),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'Efectivo', child: Text('Efectivo')),
-                            DropdownMenuItem(value: 'Tarjeta', child: Text('Tarjeta')),
-                            DropdownMenuItem(value: 'QR', child: Text('QR / Pago Móvil')),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPaymentMethod = value!;
-                            });
-                          },
                         ),
-                        const SizedBox(height: 16),
-                        _buildPaymentDetails(),
-                        const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancelar'),
-                            ),
+                        items:
+                            _paymentMethodsFor(isReservation: false)
+                                .map(
+                                  (value) => DropdownMenuItem(
+                                    value: value,
+                                    child: Text(value),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPaymentMethod = value!;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildOrderPaymentStep(),
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        label: 'Confirmar Pedido',
+                        onPressed: _checkoutOrder,
+                        isLoading: _isProcessing,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    if (activeSection == 'reservations' &&
+                        showReservations) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green.withValues(alpha: 0.25),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: CustomButton(
-                              label: 'Confirmar Pedido',
-                              onPressed: _checkout,
-                              isLoading: _isProcessing,
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.event_available, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text(
+                              'Reserva',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                                fontSize: 16,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...cartProvider.reservationItems.map(
+                        (item) =>
+                            CartItemWidget(item: item, isReservation: true),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Subtotal reserva:'),
+                          Text(
+                            'Bs ${cartProvider.reservationTotal.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Método de Pago de la Reserva',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedReservationPaymentMethod,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.payment),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        items:
+                            _paymentMethodsFor(isReservation: true)
+                                .map(
+                                  (value) => DropdownMenuItem(
+                                    value: value,
+                                    child: Text(value),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedReservationPaymentMethod = value!;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildReservationPaymentStep(),
+                      const SizedBox(height: 16),
                     ],
-                  ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Seguir comprando'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSectionTab({
+    required String title,
+    required int count,
+    required double total,
+    required bool isSelected,
+    required Color color,
+    required VoidCallback? onTap,
+  }) {
+    final backgroundColor =
+        isSelected ? color.withValues(alpha: 0.14) : Colors.grey.shade100;
+    final borderColor = isSelected ? color : Colors.grey.shade300;
+    final textColor = isSelected ? color : Colors.grey.shade600;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: textColor,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text('$count productos', style: TextStyle(color: textColor)),
+            const SizedBox(height: 4),
+            Text(
+              'Bs ${total.toStringAsFixed(2)}',
+              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+            ),
+          ],
+        ),
       ),
     );
   }

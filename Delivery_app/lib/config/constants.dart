@@ -1,7 +1,15 @@
 // Enums para Roles
 enum UserRole { client, delivery }
 
-enum OrderStatus { pending, assigned, in_transit, delivered, cancelled }
+enum OrderStatus {
+  pending,
+  reserved,
+  readyForPickup,
+  assigned,
+  in_transit,
+  delivered,
+  cancelled,
+}
 
 enum VehicleType { motorcycle, car, bicycle }
 

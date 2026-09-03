@@ -122,151 +122,166 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
       symbol: 'Bs',
       decimalDigits: 2,
     );
-  
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.4,
-        expand: false,
-        builder: (context, scrollController) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            maxChildSize: 0.9,
+            minChildSize: 0.4,
+            expand: false,
+            builder: (context, scrollController) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Pedido #${order.id.substring(0, 8).toUpperCase()}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    _buildStatusBadge(order.estado),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  DateFormat('dd/MM/yyyy HH:mm').format(order.fechaCreacion),
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 14,
-                  ),
-                ),
-                const Divider(height: 32),
-                const Text(
-                  'Productos',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: order.items.length,
-                    itemBuilder: (context, index) {
-                      final item = order.items[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.orange.shade100,
-                          child: const Icon(
-                            Icons.fastfood,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        title: Text(item.nombreProducto ?? 'Producto'),
-                        subtitle: Text('Cantidad: ${item.cantidad}'),
-                        trailing: Text(
-                          currencyFormat.format(item.subtotal),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Pedido #${order.id.substring(0, 8).toUpperCase()}',
                           style: const TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-                const Divider(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                        _buildStatusBadge(order.estado),
+                      ],
                     ),
+                    const SizedBox(height: 8),
                     Text(
-                      currencyFormat.format(order.total),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                      DateFormat(
+                        'dd/MM/yyyy HH:mm',
+                      ).format(order.fechaCreacion),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cerrar'),
-                  ),
-                ),
-                if (order.estado == OrderStatus.assigned || order.estado == OrderStatus.in_transit)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => OrderTrackingScreen(orderId: order.id),
+                    const Divider(height: 32),
+                    const Text(
+                      'Productos',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        itemCount: order.items.length,
+                        itemBuilder: (context, index) {
+                          final item = order.items[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.orange.shade100,
+                              child: const Icon(
+                                Icons.fastfood,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            title: Text(item.nombreProducto ?? 'Producto'),
+                            subtitle: Text('Cantidad: ${item.cantidad}'),
+                            trailing: Text(
+                              currencyFormat.format(item.subtotal),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.map, color: Colors.white),
-                        label: const Text('Rastrear Pedido', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          currencyFormat.format(order.total),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cerrar'),
+                      ),
+                    ),
+                    if (order.estado == OrderStatus.assigned ||
+                        order.estado == OrderStatus.in_transit)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => OrderTrackingScreen(
+                                        orderId: order.id,
+                                      ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.map, color: Colors.white),
+                            label: const Text(
+                              'Rastrear Pedido',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
     );
   }
 
@@ -280,6 +295,16 @@ class _ClientOrdersScreenState extends State<ClientOrdersScreen> {
         color = Colors.orange;
         text = 'Pendiente';
         icon = Icons.pending;
+        break;
+      case OrderStatus.reserved:
+        color = Colors.teal;
+        text = 'Reservado';
+        icon = Icons.event_available;
+        break;
+      case OrderStatus.readyForPickup:
+        color = Colors.green;
+        text = 'Listo';
+        icon = Icons.check_circle_outline;
         break;
       case OrderStatus.assigned:
         color = Colors.blue;
@@ -358,6 +383,16 @@ class _OrderCard extends StatelessWidget {
         statusIcon = Icons.pending;
         statusText = 'Pendiente';
         break;
+      case OrderStatus.reserved:
+        statusColor = Colors.teal;
+        statusIcon = Icons.event_available;
+        statusText = 'Reservado';
+        break;
+      case OrderStatus.readyForPickup:
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle_outline;
+        statusText = 'Listo';
+        break;
       case OrderStatus.assigned:
         statusColor = Colors.blue;
         statusIcon = Icons.assignment_ind;
@@ -407,7 +442,9 @@ class _OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        DateFormat('dd/MM/yyyy HH:mm').format(order.fechaCreacion),
+                        DateFormat(
+                          'dd/MM/yyyy HH:mm',
+                        ).format(order.fechaCreacion),
                         style: TextStyle(
                           fontSize: isCompact ? 11 : 12,
                           color: Colors.grey.shade600,

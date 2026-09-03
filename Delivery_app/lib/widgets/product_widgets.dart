@@ -1,6 +1,7 @@
 import 'package:delivery/models/cart_item_model.dart';
 import 'package:delivery/models/product_model.dart';
 import 'package:delivery/providers/cart_provider.dart';
+import 'package:delivery/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -27,27 +28,11 @@ class ProductCard extends StatelessWidget {
               ),
               color: Colors.grey[300],
             ),
-            child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
-                ? Image.network(
-                    product.imagenUrl!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 150,
-                    errorBuilder: (context, error, stackTrace) => const Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
-                    ),
-                  )
-                : const Center(
-                    child: Icon(
-                      Icons.image_not_supported,
-                      color: Colors.grey,
-                      size: 40,
-                    ),
-                  ),
+            child: ProductImage(
+              imageUrl: product.imagenUrl,
+              width: double.infinity,
+              height: 150,
+            ),
           ),
           // Contenido
           Padding(
@@ -88,36 +73,6 @@ class ProductCard extends StatelessWidget {
                         color: Colors.orange,
                       ),
                     ),
-                    // Botón agregar
-                    GestureDetector(
-                      onTap:
-                          product.stock > 0
-                              ? () {
-                                context.read<CartProvider>().addToCart(product);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '${product.nombre} agregado al carrito',
-                                    ),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                              }
-                              : null,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color:
-                              product.stock > 0 ? Colors.orange : Colors.grey,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.add_shopping_cart,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
                 // Stock
@@ -140,8 +95,13 @@ class ProductCard extends StatelessWidget {
 
 class CartItemWidget extends StatelessWidget {
   final CartItem item;
+  final bool isReservation;
 
-  const CartItemWidget({super.key, required this.item});
+  const CartItemWidget({
+    super.key,
+    required this.item,
+    this.isReservation = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -153,23 +113,16 @@ class CartItemWidget extends StatelessWidget {
           Container(
             width: 60,
             height: 60,
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Colors.grey[300],
-              image:
-                  item.imagenUrl != null
-                      ? DecorationImage(
-                        image: NetworkImage(item.imagenUrl!),
-                        fit: BoxFit.cover,
-                      )
-                      : null,
             ),
-            child:
-                item.imagenUrl == null
-                    ? const Center(
-                      child: Icon(Icons.image_not_supported, size: 24),
-                    )
-                    : null,
+            child: ProductImage(
+              imageUrl: item.imagenUrl,
+              width: 60,
+              height: 60,
+            ),
           ),
           const SizedBox(width: 12),
           // Detalles
@@ -207,6 +160,7 @@ class CartItemWidget extends StatelessWidget {
                   onTap: () {
                     context.read<CartProvider>().decreaseQuantity(
                       item.productoId,
+                      isReservation: isReservation,
                     );
                   },
                   child: Padding(
@@ -234,6 +188,7 @@ class CartItemWidget extends StatelessWidget {
                   onTap: () {
                     context.read<CartProvider>().increaseQuantity(
                       item.productoId,
+                      isReservation: isReservation,
                     );
                   },
                   child: Padding(
@@ -254,7 +209,10 @@ class CartItemWidget extends StatelessWidget {
           // Eliminar
           GestureDetector(
             onTap: () {
-              context.read<CartProvider>().removeFromCart(item.productoId);
+              context.read<CartProvider>().removeFromCart(
+                item.productoId,
+                isReservation: isReservation,
+              );
             },
             child: const Icon(Icons.close, color: Colors.red, size: 20),
           ),

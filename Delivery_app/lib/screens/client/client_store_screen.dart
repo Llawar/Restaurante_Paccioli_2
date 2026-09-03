@@ -1,6 +1,7 @@
 import 'package:delivery/providers/auth_provider.dart';
 import 'package:delivery/providers/cart_provider.dart';
 import 'package:delivery/providers/user_provider.dart';
+import 'package:delivery/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -111,7 +112,7 @@ class _ClientStoreScreenState extends State<ClientStoreScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                           color: Colors.black.withValues(alpha: 0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -177,14 +178,14 @@ class _ClientStoreScreenState extends State<ClientStoreScreen> {
                             color: isSelected ? Colors.white : Colors.orange,
                             fontWeight: FontWeight.w600,
                           ),
-                           backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(
                               color:
                                   isSelected
                                       ? Colors.orange
-                                       : Colors.orange.withValues(alpha: 0.3),
+                                      : Colors.orange.withValues(alpha: 0.3),
                             ),
                           ),
                         ),
@@ -294,116 +295,248 @@ class _ClientStoreScreenState extends State<ClientStoreScreen> {
   }
 
   void _showProductDetails(BuildContext context, dynamic product) {
+    int quantity = 1;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.4,
-        expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Imagen Grande
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
-                      ? Image.network(
-                          product.imagenUrl!,
-                          width: double.infinity,
-                          height: 250,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 250,
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.image_not_supported, size: 64, color: Colors.grey),
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            maxChildSize: 0.9,
+            minChildSize: 0.4,
+            expand: false,
+            builder:
+                (context, scrollController) => SingleChildScrollView(
+                  controller: scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
-                        )
-                      : Container(
-                          height: 250,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.fastfood, size: 64, color: Colors.orange),
                         ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      product.nombre,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Bs ${product.precio.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  product.categoria,
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Descripción',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  product.descripcion,
-                  style: const TextStyle(fontSize: 15, height: 1.5),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      context.read<CartProvider>().addToCart(product);
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${product.nombre} agregado al carrito')),
-                      );
-                    },
-                    icon: const Icon(Icons.add_shopping_cart),
-                    label: const Text('Agregar al Carrito', style: TextStyle(fontSize: 18)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        const SizedBox(height: 20),
+                        // Imagen Grande
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: ProductImage(
+                            imageUrl: product.imagenUrl,
+                            width: double.infinity,
+                            height: 250,
+                            errorBuilder:
+                                (context) => const Icon(
+                                  Icons.fastfood,
+                                  size: 64,
+                                  color: Colors.orange,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.nombre,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                'Bs ${product.precio.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          product.categoria,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Descripción',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          product.descripcion,
+                          style: const TextStyle(fontSize: 15, height: 1.5),
+                        ),
+                        const SizedBox(height: 24),
+                        StatefulBuilder(
+                          builder: (context, setStateQty) {
+                            return Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Cantidad',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: () {
+                                              setStateQty(() {
+                                                if (quantity > 1) quantity--;
+                                              });
+                                            },
+                                            icon: const Icon(Icons.remove),
+                                          ),
+                                          Text(
+                                            quantity.toString(),
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              setStateQty(() {
+                                                quantity++;
+                                              });
+                                            },
+                                            icon: const Icon(Icons.add),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          context
+                                              .read<CartProvider>()
+                                              .addToCart(
+                                                product,
+                                                cantidad: quantity,
+                                                isReservation: false,
+                                              );
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                '${product.nombre} agregado al pedido',
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(
+                                          Icons.add_shopping_cart,
+                                        ),
+                                        label: const Text(
+                                          'Agregar al Pedido',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.orange,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          context
+                                              .read<CartProvider>()
+                                              .addToCart(
+                                                product,
+                                                cantidad: quantity,
+                                                isReservation: true,
+                                              );
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Producto añadido a reserva',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.event_available),
+                                        label: const Text(
+                                          'Agregar a Reserva',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -434,21 +567,16 @@ class _ProductCard extends StatelessWidget {
                 // Imagen Compacta
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
-                        ? Image.network(
-                            product.imagenUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: const Center(child: Icon(Icons.fastfood, color: Colors.orange)),
-                          ),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    child: ProductImage(
+                      imageUrl: product.imagenUrl,
+                      width: double.infinity,
+                      errorBuilder:
+                          (context) =>
+                              const Icon(Icons.fastfood, color: Colors.orange),
+                    ),
                   ),
                 ),
                 // Info Compacta
@@ -459,51 +587,26 @@ class _ProductCard extends StatelessWidget {
                     children: [
                       Text(
                         product.nombre,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Bs ${product.precio.toStringAsFixed(2)}',
-                        style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 10),
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
-            ),
-            // Botón Añadir rápido
-            Positioned(
-              right: 4,
-              bottom: 4,
-              child: GestureDetector(
-                onTap: () {
-                  context.read<CartProvider>().addToCart(product);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.nombre} añadido'),
-                      duration: const Duration(seconds: 1),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                         color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 16),
-                ),
-              ),
             ),
           ],
         ),

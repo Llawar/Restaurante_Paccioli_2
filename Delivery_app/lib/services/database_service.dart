@@ -48,6 +48,7 @@ class DatabaseService {
     required double latitud,
     required double longitud,
     required List<Map<String, dynamic>> items,
+    String estado = 'pending',
   }) async {
     try {
       // Calcular total
@@ -55,7 +56,7 @@ class DatabaseService {
       for (var item in items) {
         total += (item['precio_unitario'] as num) * (item['cantidad'] as num);
       }
- 
+
       final orderData = {
         'cliente_id': clienteId,
         'estado': 'pending',
@@ -211,7 +212,11 @@ class DatabaseService {
   }
 
   // Actualizar ubicación del repartidor en tiempo real
-  Future<void> updateDeliveryLocation(String userId, double lat, double lng) async {
+  Future<void> updateDeliveryLocation(
+    String userId,
+    double lat,
+    double lng,
+  ) async {
     try {
       await supabase
           .from(TableNames.deliveryProfiles)
@@ -229,11 +234,12 @@ class DatabaseService {
 
   Future<Map<String, dynamic>> getDeliveryProfile(String userId) async {
     try {
-      final response = await supabase
-          .from(TableNames.deliveryProfiles)
-          .select()
-          .eq('user_id', userId)
-          .single();
+      final response =
+          await supabase
+              .from(TableNames.deliveryProfiles)
+              .select()
+              .eq('user_id', userId)
+              .single();
       return response;
     } catch (e) {
       throw Exception('Error al obtener perfil de repartidor: $e');
@@ -258,7 +264,6 @@ class DatabaseService {
       throw Exception('Error al obtener historial de entregas: $e');
     }
   }
-
 
   // ==================== ADMIN ====================
 
@@ -286,11 +291,12 @@ class DatabaseService {
   // Obtener usuario por email (para buscar clientes que promover)
   Future<app_user.User?> getUserByEmail(String email) async {
     try {
-      final response = await supabase
-          .from(TableNames.users)
-          .select()
-          .eq('email', email)
-          .single();
+      final response =
+          await supabase
+              .from(TableNames.users)
+              .select()
+              .eq('email', email)
+              .single();
       return app_user.User.fromJson(response);
     } catch (e) {
       return null;

@@ -42,16 +42,20 @@ class Order {
       latitud: (json['latitud'] ?? 0).toDouble(),
       longitud: (json['longitud'] ?? 0).toDouble(),
       total: (json['total'] ?? 0).toDouble(),
-      fechaCreacion: DateTime.parse(json['fecha_creacion'] ?? DateTime.now().toString()),
-      fechaEntregaEstimada: json['fecha_entrega_estimada'] != null 
-          ? DateTime.parse(json['fecha_entrega_estimada']) 
-          : null,
+      fechaCreacion: DateTime.parse(
+        json['fecha_creacion'] ?? DateTime.now().toString(),
+      ),
+      fechaEntregaEstimada:
+          json['fecha_entrega_estimada'] != null
+              ? DateTime.parse(json['fecha_entrega_estimada'])
+              : null,
       calificacion: json['calificacion'],
-      items: json['order_items'] != null
-          ? (json['order_items'] as List)
-              .map((item) => OrderItem.fromJson(item))
-              .toList()
-          : [],
+      items:
+          json['order_items'] != null
+              ? (json['order_items'] as List)
+                  .map((item) => OrderItem.fromJson(item))
+                  .toList()
+              : [],
     );
   }
 
@@ -76,6 +80,10 @@ class Order {
     switch (status) {
       case 'pending':
         return OrderStatus.pending;
+      case 'reserved':
+        return OrderStatus.reserved;
+      case 'ready_for_pickup':
+        return OrderStatus.readyForPickup;
       case 'assigned':
         return OrderStatus.assigned;
       case 'in_transit':
@@ -114,7 +122,8 @@ class OrderItem {
       id: json['id'] ?? '',
       pedidoId: json['pedido_id'] ?? '',
       productoId: json['producto_id'] ?? '',
-      nombreProducto: json['nombre_producto'] ?? json['productos']?['nombre'] ?? 'Producto',
+      nombreProducto:
+          json['nombre_producto'] ?? json['productos']?['nombre'] ?? 'Producto',
       cantidad: json['cantidad'] ?? 0,
       precioUnitario: (json['precio_unitario'] ?? 0).toDouble(),
       subtotal: (json['subtotal'] ?? 0).toDouble(),

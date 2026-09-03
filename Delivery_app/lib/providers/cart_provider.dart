@@ -4,19 +4,34 @@ import 'package:delivery/services/database_service.dart';
 import 'package:flutter/material.dart';
 
 class CartProvider extends ChangeNotifier {
-  final List<CartItem> _items = [];
+  final List<CartItem> _orderItems = [];
+  final List<CartItem> _reservationItems = [];
   bool _isLoading = false;
+  bool _isReservationMode = false;
 
   // Getters
-  List<CartItem> get items => _items;
+  List<CartItem> get items => [..._orderItems, ..._reservationItems];
+  List<CartItem> get orderItems => _orderItems;
+  List<CartItem> get reservationItems => _reservationItems;
   bool get isLoading => _isLoading;
-  int get itemCount => _items.fold(0, (sum, item) => sum + item.cantidad);
-  double get total => _items.fold(0, (sum, item) => sum + item.subtotal);
-  bool get isEmpty => _items.isEmpty;
+  bool get isReservationMode => _isReservationMode;
+  int get itemCount =>
+      _orderItems.fold(0, (sum, item) => sum + item.cantidad) +
+      _reservationItems.fold(0, (sum, item) => sum + item.cantidad);
+  double get total => orderTotal + reservationTotal;
+  double get orderTotal =>
+      _orderItems.fold(0, (sum, item) => sum + item.subtotal);
+  double get reservationTotal =>
+      _reservationItems.fold(0, (sum, item) => sum + item.subtotal);
+  bool get isEmpty => _orderItems.isEmpty && _reservationItems.isEmpty;
 
-  // Agregar producto al carrito
-  void addToCart(Product product, {int cantidad = 1}) {
-    final existingItem = _items.firstWhere(
+  void addToCart(
+    Product product, {
+    int cantidad = 1,
+    bool isReservation = false,
+  }) {
+    final targetList = isReservation ? _reservationItems : _orderItems;
+    final existingItem = targetList.firstWhere(
       (item) => item.productoId == product.id,
       orElse:
           () => CartItem(
@@ -29,10 +44,10 @@ class CartProvider extends ChangeNotifier {
     );
 
     if (existingItem.cantidad == 0) {
-      _items.add(existingItem.copyWith(cantidad: cantidad));
+      targetList.add(existingItem.copyWith(cantidad: cantidad));
     } else {
-      final index = _items.indexOf(existingItem);
-      _items[index] = existingItem.copyWith(
+      final index = targetList.indexOf(existingItem);
+      targetList[index] = existingItem.copyWith(
         cantidad: existingItem.cantidad + cantidad,
       );
     }
@@ -40,58 +55,73 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Incrementar cantidad
-  void increaseQuantity(String productoId) {
-    final index = _items.indexWhere((item) => item.productoId == productoId);
+  void increaseQuantity(String productoId, {bool isReservation = false}) {
+    final targetList = isReservation ? _reservationItems : _orderItems;
+    final index = targetList.indexWhere(
+      (item) => item.productoId == productoId,
+    );
     if (index >= 0) {
-      final item = _items[index];
-      _items[index] = item.copyWith(cantidad: item.cantidad + 1);
+      final item = targetList[index];
+      targetList[index] = item.copyWith(cantidad: item.cantidad + 1);
       notifyListeners();
     }
   }
 
-  // Decrementar cantidad
-  void decreaseQuantity(String productoId) {
-    final index = _items.indexWhere((item) => item.productoId == productoId);
+  void decreaseQuantity(String productoId, {bool isReservation = false}) {
+    final targetList = isReservation ? _reservationItems : _orderItems;
+    final index = targetList.indexWhere(
+      (item) => item.productoId == productoId,
+    );
     if (index >= 0) {
-      final item = _items[index];
+      final item = targetList[index];
       if (item.cantidad > 1) {
-        _items[index] = item.copyWith(cantidad: item.cantidad - 1);
-      } else {
-        _items.removeAt(index);
+        targetList[index] = item.copyWith(cantidad: item.cantidad - 1);
       }
       notifyListeners();
     }
   }
 
-  // Remover producto
-  void removeFromCart(String productoId) {
-    _items.removeWhere((item) => item.productoId == productoId);
+  void removeFromCart(String productoId, {bool isReservation = false}) {
+    final targetList = isReservation ? _reservationItems : _orderItems;
+    targetList.removeWhere((item) => item.productoId == productoId);
     notifyListeners();
   }
 
-  // Limpiar carrito
+  void setReservationMode(bool value) {
+    _isReservationMode = value;
+    notifyListeners();
+  }
+
   void clear() {
-    _items.clear();
+    _orderItems.clear();
+    _reservationItems.clear();
+    _isReservationMode = false;
     notifyListeners();
   }
 
-  // Crear orden
   Future<bool> checkout(
     String clienteId,
     String direccion,
     String metodoPago,
     double lat,
-    double lng,
-  ) async {
+    double lng, {
+    bool isReservation = false,
+  }) async {
     _isLoading = true;
     notifyListeners();
 
     try {
       final dbService = DatabaseService();
+      final targetList = isReservation ? _reservationItems : _orderItems;
+
+      if (targetList.isEmpty) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
 
       final items =
-          _items
+          targetList
               .map(
                 (item) => {
                   'producto_id': item.productoId,
@@ -101,16 +131,17 @@ class CartProvider extends ChangeNotifier {
               )
               .toList();
 
-       await dbService.createOrder(
-         clienteId: clienteId,
-         direccionEntrega: direccion,
-         metodoPago: metodoPago,
-         latitud: lat,
-         longitud: lng,
-         items: items,
-       );
+      await dbService.createOrder(
+        clienteId: clienteId,
+        direccionEntrega: direccion,
+        metodoPago: metodoPago,
+        latitud: lat,
+        longitud: lng,
+        items: items,
+        estado: isReservation ? 'reserved' : 'pending',
+      );
 
-      clear();
+      targetList.clear();
       _isLoading = false;
       notifyListeners();
       return true;
